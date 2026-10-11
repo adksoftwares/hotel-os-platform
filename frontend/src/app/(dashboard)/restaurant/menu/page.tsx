@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from 'react';
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Check, X, Filter } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Check, X, Filter, Utensils, AlertTriangle } from 'lucide-react';
 
 interface FoodVariant {
   id: string;
@@ -20,7 +20,7 @@ interface MenuItem {
   image?: string;
 }
 
-const initialMenu: MenuItem[] = [
+const SAMPLE_MENU: MenuItem[] = [
   {
     id: "M-001",
     category: "Main Course",
@@ -57,9 +57,10 @@ const initialMenu: MenuItem[] = [
 ];
 
 export default function MenuManagement() {
-  const [menu, setMenu] = useState<MenuItem[]>(initialMenu);
+  const [menu, setMenu] = useState<MenuItem[]>([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Partial<MenuItem>>({
@@ -72,6 +73,44 @@ export default function MenuManagement() {
   });
   const [variantName, setVariantName] = useState("");
   const [variantPrice, setVariantPrice] = useState("");
+
+  const loadMenu = () => {
+    try {
+      const saved = localStorage.getItem('hotel_menu_items') || localStorage.getItem('restaurant_menu_items');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setMenu(parsed);
+          return;
+        }
+      }
+      setMenu([]);
+    } catch (e) {
+      setMenu([]);
+    }
+  };
+
+  useEffect(() => {
+    loadMenu();
+    const handleUpdate = () => loadMenu();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('hotel_menu_changed', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('hotel_menu_changed', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+    };
+  }, []);
+
+  const saveMenu = (newMenu: MenuItem[]) => {
+    setMenu(newMenu);
+    try {
+      localStorage.setItem('hotel_menu_items', JSON.stringify(newMenu));
+      localStorage.setItem('restaurant_menu_items', JSON.stringify(newMenu));
+      window.dispatchEvent(new Event('hotel_menu_changed'));
+    } catch (e) {}
+  };
 
   const handleAddVariant = () => {
     if (!variantName || !variantPrice) return;
@@ -95,26 +134,39 @@ export default function MenuManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name?.trim()) return;
+
     const newItem: MenuItem = {
       id: `M-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-      name: formData.name || 'Unnamed Item',
-      category: formData.category || 'Uncategorized',
+      name: formData.name.trim(),
+      category: formData.category || 'Main Course',
       description: formData.description || '',
       basePrice: Number(formData.basePrice) || 0,
       variants: formData.variants || [],
       available: formData.available ?? true,
     };
-    setMenu([...menu, newItem]);
+    saveMenu([...menu, newItem]);
     setShowModal(false);
     setFormData({ name: '', category: 'Main Course', description: '', basePrice: 0, available: true, variants: [] });
   };
 
   const toggleAvailability = (id: string) => {
-    setMenu(menu.map(item => item.id === id ? { ...item, available: !item.available } : item));
+    const updated = menu.map(item => item.id === id ? { ...item, available: !item.available } : item);
+    saveMenu(updated);
   };
 
   const deleteItem = (id: string) => {
-    setMenu(menu.filter(item => item.id !== id));
+    const updated = menu.filter(item => item.id !== id);
+    saveMenu(updated);
+  };
+
+  const handleClearAll = () => {
+    saveMenu([]);
+    setShowClearConfirm(false);
+  };
+
+  const handleLoadSampleMenu = () => {
+    saveMenu(SAMPLE_MENU);
   };
 
   const filteredMenu = menu.filter(item => 
@@ -124,7 +176,7 @@ export default function MenuManagement() {
 
   // Escape key closes modal
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { try { setShowModal(false); } catch(_){} } };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { try { setShowModal(false); setShowClearConfirm(false); } catch(_){} } };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   });
@@ -136,110 +188,161 @@ export default function MenuManagement() {
           <h1 className="text-2xl font-bold text-slate-900">Menu Management</h1>
           <p className="text-slate-500 text-sm">Manage restaurant food items, prices, and availability</p>
         </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors"
-        >
-          <Plus size={18} />
-          Add Food Item
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-        <div className="p-4 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
-          <div className="relative flex-1 min-w-[250px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search menu items or categories..." 
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 font-medium">
-            <Filter size={18} />
-            Filter Categories
+        <div className="flex items-center gap-2">
+          {menu.length > 0 && (
+            <button 
+              type="button"
+              onClick={() => setShowClearConfirm(true)}
+              className="px-3 py-2 border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1.5 font-medium text-xs transition-colors"
+            >
+              <Trash2 size={15} />
+              Clear All Items
+            </button>
+          )}
+          <button 
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors text-sm"
+          >
+            <Plus size={18} />
+            Add Food Item
           </button>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 font-semibold text-slate-700">Item</th>
-                <th className="p-4 font-semibold text-slate-700">Category</th>
-                <th className="p-4 font-semibold text-slate-700">Base Price</th>
-                <th className="p-4 font-semibold text-slate-700">Variants</th>
-                <th className="p-4 font-semibold text-slate-700">Status</th>
-                <th className="p-4 font-semibold text-slate-700 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMenu.map(item => (
-                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                  <td className="p-4">
-                    <div className="font-medium text-slate-900">{item.name}</div>
-                    <div className="text-sm text-slate-500 truncate max-w-xs">{item.description}</div>
-                  </td>
-                  <td className="p-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
-                      {item.category}
-                    </span>
-                  </td>
-                  <td className="p-4 font-medium text-slate-900">${item.basePrice.toFixed(2)}</td>
-                  <td className="p-4">
-                    {item.variants.length > 0 ? (
-                      <div className="flex flex-col gap-1">
-                        {item.variants.map(v => (
-                          <span key={v.id} className="text-xs text-slate-600 bg-white border border-slate-200 px-2 py-1 rounded inline-block w-max">
-                            {v.name}: ${v.price.toFixed(2)}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-slate-400 italic">No variants</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <button 
-                      onClick={() => toggleAvailability(item.id)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${item.available ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                    >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.available ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                    <span className={`ml-2 text-sm font-medium ${item.available ? 'text-emerald-600' : 'text-slate-500'}`}>
-                      {item.available ? 'Available' : 'Out of Stock'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-slate-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-indigo-50">
-                        <Edit2 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => deleteItem(item.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredMenu.length === 0 && (
-            <div className="p-8 text-center text-slate-500">
-              No menu items found.
-            </div>
-          )}
-        </div>
       </div>
 
+      {menu.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center max-w-xl mx-auto my-8 space-y-4 shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+            <Utensils className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-slate-900">No Food Items in Menu</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 leading-relaxed">
+              All demo food items have been cleared. Add your first dish to build your restaurant catalog.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Your First Dish</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleLoadSampleMenu}
+              className="px-3.5 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-semibold transition-colors"
+            >
+              <span>Load Sample Dishes</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+          <div className="p-4 border-b border-slate-200 flex flex-wrap gap-4 justify-between items-center">
+            <div className="relative flex-1 min-w-[250px] max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search menu items or categories..." 
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm">
+              <Filter size={18} />
+              Filter Categories
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="p-4 font-semibold text-slate-700">Item</th>
+                  <th className="p-4 font-semibold text-slate-700">Category</th>
+                  <th className="p-4 font-semibold text-slate-700">Base Price</th>
+                  <th className="p-4 font-semibold text-slate-700">Variants</th>
+                  <th className="p-4 font-semibold text-slate-700">Status</th>
+                  <th className="p-4 font-semibold text-slate-700 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredMenu.map(item => (
+                  <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4">
+                      <div className="font-medium text-slate-900">{item.name}</div>
+                      {item.description && (
+                        <div className="text-sm text-slate-500 truncate max-w-xs">{item.description}</div>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                        {item.category}
+                      </span>
+                    </td>
+                    <td className="p-4 font-medium text-slate-900">${item.basePrice.toFixed(2)}</td>
+                    <td className="p-4">
+                      {item.variants && item.variants.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {item.variants.map(v => (
+                            <span key={v.id} className="text-xs text-slate-600 bg-white border border-slate-200 px-2 py-1 rounded inline-block w-max">
+                              {v.name}: ${v.price.toFixed(2)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400 italic">No variants</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <button 
+                        type="button"
+                        onClick={() => toggleAvailability(item.id)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${item.available ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.available ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                      <span className={`ml-2 text-sm font-medium ${item.available ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        {item.available ? 'Available' : 'Out of Stock'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          type="button"
+                          onClick={() => deleteItem(item.id)}
+                          className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                          title={`Delete ${item.name}`}
+                          aria-label={`Delete ${item.name}`}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredMenu.length === 0 && (
+              <div className="p-8 text-center text-slate-500 text-xs">
+                No menu items match your search.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
+            onClick={() => setShowModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200 z-10 border border-slate-100">
             <div className="flex justify-between items-center p-6 border-b border-slate-200">
               <h2 className="text-xl font-bold text-slate-900">Add New Food Item</h2>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
@@ -374,6 +477,51 @@ export default function MenuManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Menu Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
+            onClick={() => setShowClearConfirm(false)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-sm w-full p-6 text-center z-10 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4 ring-8 ring-amber-50/80 shadow-sm">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">
+              Clear Entire Menu?
+            </h3>
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+              This will remove all {menu.length} food items currently in your catalog.
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
+              >
+                Yes, Clear All Items
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

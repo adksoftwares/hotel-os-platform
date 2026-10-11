@@ -34,10 +34,13 @@ export default function AddRoomPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const roomNum = formData.roomNumber.trim();
+    if (!roomNum) return;
+
     // Persist new room to room board fleet in localStorage
     const newRoomItem = {
-      id: formData.roomNumber,
-      roomNumber: formData.roomNumber,
+      id: roomNum,
+      roomNumber: roomNum,
       type: `${formData.roomType} Tier`,
       floor: parseInt(formData.floor, 10) || 1,
       occupancy: 'Vacant' as const,
@@ -47,8 +50,10 @@ export default function AddRoomPage() {
     };
     try {
       const existing = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
-      const filtered = Array.isArray(existing) ? existing.filter((r: any) => r.roomNumber !== formData.roomNumber) : [];
-      localStorage.setItem('hotel_room_board_state', JSON.stringify([...filtered, newRoomItem]));
+      const filtered = Array.isArray(existing) ? existing.filter((r: any) => r.roomNumber !== roomNum) : [];
+      const updated = [...filtered, newRoomItem];
+      localStorage.setItem('hotel_room_board_state', JSON.stringify(updated));
+      window.dispatchEvent(new Event('hotel_rooms_changed'));
     } catch (_) {}
 
     setShowSuccessModal(true);

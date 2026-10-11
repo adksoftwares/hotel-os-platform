@@ -37,21 +37,31 @@ export default function AddFoodPage() {
   };
 
   const handleSave = () => {
+    const itemName = formData.name.trim();
+    if (!itemName) return;
+
     try {
-      const existingMenu = JSON.parse(localStorage.getItem('restaurant_menu_items') || '[]');
+      const existingMenu = JSON.parse(localStorage.getItem('hotel_menu_items') || localStorage.getItem('restaurant_menu_items') || '[]');
       const newItem = {
-        id: Date.now().toString(),
-        name: formData.name || 'Untitled Food Item',
+        id: `M-${Date.now().toString().slice(-4)}`,
+        name: itemName,
         code: formData.code || `F-${Math.floor(100 + Math.random() * 900)}`,
-        category: formData.category || 'General',
+        category: formData.category || 'Main Course',
+        description: '',
+        basePrice: parseFloat(formData.price) || 0,
         price: parseFloat(formData.price) || 0,
         cost: parseFloat(formData.cost) || 0,
         tax: parseFloat(formData.tax) || 0,
+        available: formData.isAvailable,
         isAvailable: formData.isAvailable,
-        variants,
+        variants: variants.map(v => ({ id: String(v.id), name: v.name, price: (parseFloat(formData.price) || 0) + (parseFloat(v.priceAdjustment) || 0) })),
         modifiers,
       };
-      localStorage.setItem('restaurant_menu_items', JSON.stringify([...existingMenu, newItem]));
+      const filtered = Array.isArray(existingMenu) ? existingMenu.filter((m: any) => m.name !== itemName) : [];
+      const updated = [...filtered, newItem];
+      localStorage.setItem('hotel_menu_items', JSON.stringify(updated));
+      localStorage.setItem('restaurant_menu_items', JSON.stringify(updated));
+      window.dispatchEvent(new Event('hotel_menu_changed'));
     } catch (_) {}
 
     setShowSuccessModal(true);
