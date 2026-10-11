@@ -232,6 +232,7 @@ model Reservation {
   stays            Stay[]
   @@index([propertyId])
   @@index([propertyId, createdAt])
+  @@index([roomId])
 }
 
 model Stay {
