@@ -2,6 +2,7 @@
 @import "./human-ui.css";
 
 @theme {
+  --font-sans: var(--font-ui);
   --color-primary-50: var(--color-sky-50);
   --color-primary-100: var(--color-sky-100);
   --color-primary-200: var(--color-sky-200);

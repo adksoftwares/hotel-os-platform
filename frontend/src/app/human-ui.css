@@ -1,11 +1,20 @@
-/* ADK Hotel OS — Human-centered Hospitality UI layer */
+/* ADK Hotel OS — Natural typography system */
 :root {
+  --font-ui: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Tamil", Arial, sans-serif;
+
+  --text-primary: #252c35;
+  --text-secondary: #626d7b;
+  --text-subtle: #7a8491;
+
+  --font-body: 14px;
+  --line-body: 1.55;
+
   --hotel-bg: #f5f6f8;
   --hotel-surface: #ffffff;
   --hotel-surface-subtle: #f8fafc;
-  --hotel-text: #1e293b;
-  --hotel-text-secondary: #475569;
-  --hotel-muted: #64748b;
+  --hotel-text: #252c35;
+  --hotel-text-secondary: #626d7b;
+  --hotel-muted: #7a8491;
   --hotel-border: #e2e8f0;
   --hotel-border-subtle: #f1f5f9;
   --hotel-primary: #1e3a8a; /* Professional Hospitality Navy */
@@ -19,17 +28,101 @@
   --hotel-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
 }
 
-body {
-  background: var(--hotel-bg);
-  color: var(--hotel-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
+html {
+  font-family: var(--font-ui);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-button, input, select, textarea {
-  font: inherit;
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+}
+
+body {
+  background: var(--hotel-bg);
+  color: var(--text-primary);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* Page hierarchy */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: 26px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+
+h2 {
+  font-size: 21px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+p {
+  line-height: 1.6;
+}
+
+small,
+.text-caption {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+label {
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 550;
+}
+
+input,
+select,
+textarea,
+button {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hotel-price,
+.hotel-number,
+.hotel-date,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.hotel-muted {
+  color: var(--text-secondary);
 }
 
 button {
@@ -45,6 +138,7 @@ button:disabled {
   outline: 2px solid var(--hotel-focus);
   outline-offset: 2px;
 }
+
 
 .hotel-page {
   width: 100%;
@@ -266,6 +360,12 @@ button:disabled {
 }
 
 @media (max-width: 768px) {
+  h1 {
+    font-size: 23px;
+  }
+  h2 {
+    font-size: 19px;
+  }
   .hotel-page {
     padding: 14px;
   }
