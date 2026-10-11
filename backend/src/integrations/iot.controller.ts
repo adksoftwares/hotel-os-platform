@@ -1,18 +1,13 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, NotImplementedException } from '@nestjs/common';
 
 @Controller('iot/keycard')
 export class IotController {
   @Post('encode')
-  encodeKeycard(@Body('reservationId') reservationId: string) {
-    // Simulate generating a base64 NFC token for Assa Abloy/VingCard
-    const tokenPayload = `RES:${reservationId}:${Date.now()}`;
-    const tokenBase64 = Buffer.from(tokenPayload).toString('base64');
-    
-    return {
-      message: 'Keycard encoded successfully',
-      reservationId,
-      provider: 'Assa Abloy/VingCard',
-      nfcToken: tokenBase64
-    };
+  encodeKeycard(): never {
+    // Base64 is encoding, not encryption or a provider-issued access credential.
+    // Fail closed until a real keycard vendor adapter is configured.
+    throw new NotImplementedException(
+      'Keycard encoding is unavailable until a supported provider is configured. No key was issued.'
+    );
   }
 }
