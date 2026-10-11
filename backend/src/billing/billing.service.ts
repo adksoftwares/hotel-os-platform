@@ -1,6 +1,7 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { Prisma, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { PaymentStatus } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class BillingService {
@@ -15,25 +16,42 @@ export class BillingService {
     idempotencyKey: string,
     userId: string
   ) {
-    // 1. Idempotency Check
+    if (!Number.isFinite(amount) || amount <= 0 || !idempotencyKey?.trim()) {
+      throw new BadRequestException('A positive payment amount and idempotency key are required');
+    }
+    const paymentAmount = new Prisma.Decimal(amount);
+
+    // Idempotency keys are global-unique in the schema. Never return a payment
+    // from another tenant when a caller reuses a key.
     const existingPayment = await this.prisma.payment.findUnique({
       where: { idempotencyKey }
     });
     if (existingPayment) {
-      return existingPayment; // Already processed, safely return original (Idempotency)
+      const sameRequest =
+        existingPayment.propertyId === propertyId &&
+        existingPayment.folioId === folioId &&
+        existingPayment.amount.equals(paymentAmount) &&
+        existingPayment.method === method;
+      if (!sameRequest) {
+        throw new ConflictException('Idempotency key has already been used for a different payment');
+      }
+      return existingPayment;
     }
 
     return this.prisma.$transaction(async (tx) => {
       const folio = await tx.folio.findUnique({ where: { id: folioId, propertyId } });
       if (!folio) throw new NotFoundException('Folio not found');
+      if (folio.status === 'CLOSED') throw new ConflictException('Cannot pay a closed folio');
+      if (paymentAmount.gt(folio.balance)) {
+        throw new ConflictException('Payment amount exceeds the outstanding folio balance');
+      }
 
-      // 2. Create Payment
       const payment = await tx.payment.create({
         data: {
           propertyId,
           folioId,
-          amount,
-          capturedAmount: amount, // Assuming direct capture for this flow
+          amount: paymentAmount,
+          capturedAmount: paymentAmount,
           method,
           status: PaymentStatus.CAPTURED,
           paymentReference,
@@ -41,14 +59,17 @@ export class BillingService {
         }
       });
 
-      // 3. Update Folio Status (Calculate totals, but keeping simple here for demo)
-      // In real scenario, SUM all items - SUM all payments
+      const balanceAfter = folio.balance.sub(paymentAmount);
+      const paidAfter = folio.paidTotal.add(paymentAmount);
       await tx.folio.update({
-        where: { id: folioId },
-        data: { status: 'PARTIALLY_SETTLED' } // Just an example state progression
+        where: { id: folioId, propertyId },
+        data: {
+          paidTotal: paidAfter,
+          balance: balanceAfter,
+          status: balanceAfter.lte(0) ? 'SETTLED' : 'PARTIALLY_SETTLED'
+        }
       });
 
-      // 4. Audit Log
       await tx.auditLog.create({
         data: {
           propertyId,
@@ -75,41 +96,71 @@ export class BillingService {
     reason: string,
     userId: string
   ) {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Refund amount must be greater than zero');
+    }
+    const refundAmount = new Prisma.Decimal(amount);
+
     return this.prisma.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId, propertyId }
       });
       if (!payment) throw new NotFoundException('Payment not found');
-
       if (payment.status !== PaymentStatus.CAPTURED) {
         throw new ConflictException('Payment must be CAPTURED to refund');
       }
 
-      if (amount > Number(payment.capturedAmount)) {
-        throw new ConflictException('Refund amount exceeds captured amount');
+      const previousRefunds = await tx.refund.aggregate({
+        where: { paymentId },
+        _sum: { amount: true }
+      });
+      const alreadyRefunded = previousRefunds._sum.amount ?? new Prisma.Decimal(0);
+      const totalRefunded = alreadyRefunded.add(refundAmount);
+      if (totalRefunded.gt(payment.capturedAmount)) {
+        throw new ConflictException('Cumulative refunds cannot exceed the captured amount');
       }
 
-      // Create Refund
-      const refundReference = 'REF-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const folio = await tx.folio.findUnique({
+        where: { id: payment.folioId, propertyId }
+      });
+      if (!folio) throw new NotFoundException('Folio not found');
+
       const refund = await tx.refund.create({
         data: {
-          refundReference,
+          refundReference: `REF-${crypto.randomUUID()}`,
           paymentId,
-          amount,
+          amount: refundAmount,
           reason,
           authorizedBy: userId
         }
       });
 
-      // Update Payment status
-      await tx.payment.update({
-        where: { id: paymentId },
-        data: { 
-          status: PaymentStatus.REFUNDED
+      const fullyRefunded = totalRefunded.gte(payment.capturedAmount);
+      if (fullyRefunded) {
+        await tx.payment.update({
+          where: { id: paymentId, propertyId },
+          data: { status: PaymentStatus.REFUNDED }
+        });
+      }
+
+      const paidAfter = Prisma.Decimal.max(
+        new Prisma.Decimal(0),
+        folio.paidTotal.sub(refundAmount)
+      );
+      const balanceAfter = folio.balance.add(refundAmount);
+      await tx.folio.update({
+        where: { id: folio.id, propertyId },
+        data: {
+          paidTotal: paidAfter,
+          balance: balanceAfter,
+          status: paidAfter.lte(0)
+            ? 'OPEN'
+            : balanceAfter.lte(0)
+              ? 'SETTLED'
+              : 'PARTIALLY_SETTLED'
         }
       });
 
-      // Audit Log
       await tx.auditLog.create({
         data: {
           propertyId,
