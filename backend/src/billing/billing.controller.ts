@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, NotImplementedException } from '@nestjs/common';
 import { BillingService } from './billing.service.js';
 import { AuthUser } from '../auth/decorators/auth-user.decorator.js';
 
@@ -31,15 +31,11 @@ export class BillingController {
   }
 
   @Post('intent')
-  async createIntent(@AuthUser() user: any, @Body() body: any) {
-    // Simulating returning a Stripe PaymentIntent client secret.
-    // This allows the client to process card payments directly via Stripe,
-    // ensuring we never touch raw PCI-DSS card data.
-    const amount = body.amount || 0;
-    return {
-      clientSecret: `pi_test_${Math.random().toString(36).substring(2, 15)}_secret_${Math.random().toString(36).substring(2, 15)}`,
-      amount,
-      currency: 'usd',
-    };
+  async createIntent(): Promise<never> {
+    // A fabricated client secret is not a payment intent. Never tell clients
+    // that a payment provider has authorized a transaction unless it has.
+    throw new NotImplementedException(
+      'Card payment intents are unavailable until a real payment provider is configured.'
+    );
   }
 }
