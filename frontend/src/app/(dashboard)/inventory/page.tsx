@@ -1,107 +1,270 @@
 "use client";
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Panel } from '@/components/ui/Panel';
+import { 
+  Package, Plus, ClipboardCheck, ArrowDownRight, 
+  Search, AlertTriangle, CheckCircle2, Truck
+} from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+
+interface InventoryItem {
+  sku: string;
+  name: string;
+  category: 'Kitchen' | 'Bar' | 'Housekeeping' | 'Beverages';
+  qty: number;
+  unit: string;
+  reorderLevel: number;
+  location: string;
+  unitCost: number;
+}
+
+const initialStock: InventoryItem[] = [
+  { sku: 'ING-BEEF', name: 'Premium Beef Tenderloin', category: 'Kitchen', qty: 45.5, unit: 'KG', reorderLevel: 20.0, location: 'Main Walk-In Freezer', unitCost: 28.50 },
+  { sku: 'ING-POT', name: 'Russet Potatoes (A-Grade)', category: 'Kitchen', qty: 12.0, unit: 'KG', reorderLevel: 25.0, location: 'Dry Store A', unitCost: 2.20 },
+  { sku: 'BEV-COLA', name: 'Craft Cola Postmix Syrup', category: 'Bar', qty: 5.0, unit: 'LITER', reorderLevel: 15.0, location: 'Bar Cellar Room', unitCost: 14.00 },
+  { sku: 'BEV-COF', name: 'Single Origin Espresso Beans', category: 'Beverages', qty: 32.0, unit: 'KG', reorderLevel: 10.0, location: 'Dry Store B', unitCost: 19.50 },
+  { sku: 'HK-SHAM', name: 'Luxury Guest Shampoo Bottles (50ml)', category: 'Housekeeping', qty: 240, unit: 'PCS', reorderLevel: 100, location: 'Linen Master Depot', unitCost: 1.10 },
+  { sku: 'HK-TOWL', name: 'Egyptian Cotton Bath Towels (700gsm)', category: 'Housekeeping', qty: 85, unit: 'PCS', reorderLevel: 50, location: 'Floor 2 Linen Closet', unitCost: 18.00 },
+  { sku: 'BAR-CHAM', name: 'Veuve Clicquot Brut Champagne', category: 'Bar', qty: 18, unit: 'BOTTLE', reorderLevel: 12, location: 'Wine Cellar Cooler', unitCost: 65.00 },
+];
 
 export default function InventoryDashboard() {
-  const [stock, setStock] = useState([
-    { sku: 'ING-BEEF', name: 'Premium Beef Tenderloin', qty: 45.5, unit: 'KG', location: 'Main Cold Store', status: 'OK' },
-    { sku: 'ING-POT', name: 'Russet Potatoes', qty: 12.0, unit: 'KG', location: 'Dry Store A', status: 'LOW' },
-    { sku: 'BEV-COLA', name: 'Craft Cola Syrup', qty: 5.0, unit: 'LITER', location: 'Bar Store', status: 'CRITICAL' },
-  ]);
-
-  const [modalState, setModalState] = useState<{type: 'none' | 'grn' | 'alert', message?: string}>({type: 'none'});
+  const { toast } = useToast();
+  const [stock, setStock] = useState<InventoryItem[]>(initialStock);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [isGrnModalOpen, setIsGrnModalOpen] = useState(false);
+  const [selectedSku, setSelectedSku] = useState('BEV-COLA');
   const [grnQty, setGrnQty] = useState('');
 
   const handleCreatePO = () => {
-    setModalState({ type: 'alert', message: 'Purchase Order draft created successfully.' });
+    toast('Draft Purchase Order PO-9042 generated for below-reorder items.', 'success');
   };
 
-  const handleReceiveGoodsSubmit = () => {
+  const handleReceiveGoodsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     const qty = Number(grnQty);
-    if (qty && !isNaN(qty)) {
-      setStock(stock.map(s => 
-        s.sku === 'BEV-COLA' 
-          ? { ...s, qty: s.qty + qty, status: (s.qty + qty) > 20 ? 'OK' : 'LOW' } 
-          : s
-      ));
-      setGrnQty('');
-      setModalState({ type: 'alert', message: `Goods Received Note generated. Added ${qty} Liters of Craft Cola.` });
+    if (!qty || isNaN(qty) || qty <= 0) {
+      toast('Please enter a valid positive quantity.', 'error');
+      return;
     }
+
+    setStock(prev =>
+      prev.map(s => (s.sku === selectedSku ? { ...s, qty: s.qty + qty } : s))
+    );
+    const item = stock.find(s => s.sku === selectedSku);
+    toast(`GRN-8810 recorded. Added ${qty} ${item?.unit || ''} to ${item?.name || selectedSku}.`, 'success');
+    setIsGrnModalOpen(false);
+    setGrnQty('');
   };
+
+  const filteredStock = stock.filter(item => {
+    if (selectedCategory !== 'All' && item.category !== selectedCategory) return false;
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase();
+      return item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const lowStockCount = stock.filter(s => s.qty <= s.reorderLevel).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-900">Inventory & Purchasing</h1>
-        <div className="flex gap-2">
-          <button onClick={handleCreatePO} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50 text-sm font-medium">Create PO</button>
-          <button onClick={() => setModalState({ type: 'grn' })} className="btn-primary">Receive Goods (GRN)</button>
+    <div className="hotel-page">
+      <PageHeader
+        title="Inventory & Stock Management"
+        description="Real-time ingredient balances, purchasing orders, and warehouse physical stock takes."
+        badge={
+          lowStockCount > 0 ? (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+              {lowStockCount} Items Below Reorder Point
+            </span>
+          ) : undefined
+        }
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/inventory/stocktake"
+              className="hotel-button hotel-button-secondary text-xs"
+            >
+              <ClipboardCheck className="w-3.5 h-3.5 text-slate-600" />
+              <span>Physical Stocktake</span>
+            </Link>
+            <button
+              onClick={handleCreatePO}
+              className="hotel-button hotel-button-secondary text-xs"
+            >
+              <span>+ Create PO</span>
+            </button>
+            <button
+              onClick={() => setIsGrnModalOpen(true)}
+              className="hotel-button hotel-button-emerald text-xs"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Receive Goods (GRN)</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Filter and Search Bar */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-slate-200">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {['All', 'Kitchen', 'Bar', 'Beverages', 'Housekeeping'].map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
+                selectedCategory === cat
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search SKU or item name..."
+            className="hotel-input pl-8 py-1.5 min-h-[34px] text-xs"
+          />
         </div>
       </div>
 
-      <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Stock Balances</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-slate-500 font-medium">
-              <tr>
-                <th className="px-4 py-2">SKU</th>
-                <th className="px-4 py-2">Item Name</th>
-                <th className="px-4 py-2 text-right">Quantity</th>
-                <th className="px-4 py-2">Location</th>
-                <th className="px-4 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {stock.map((item) => (
-                <tr key={item.sku} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-800">{item.sku}</td>
-                  <td className="px-4 py-3">{item.name}</td>
-                  <td className="px-4 py-3 text-right font-bold text-slate-900">
-                    {item.qty.toFixed(2)} <span className="text-xs font-normal text-slate-500">{item.unit}</span>
+      {/* Stock Table */}
+      <div className="hotel-table-wrap">
+        <table className="hotel-table">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Item Name</th>
+              <th>Category</th>
+              <th>Store Location</th>
+              <th className="text-right">Unit Cost</th>
+              <th className="text-right">Stock on Hand</th>
+              <th className="text-right">Reorder Level</th>
+              <th>Health Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredStock.map((item) => {
+              const isCritical = item.qty <= item.reorderLevel * 0.5;
+              const isLow = item.qty <= item.reorderLevel && !isCritical;
+
+              return (
+                <tr key={item.sku}>
+                  <td className="font-mono text-xs font-semibold text-slate-700">{item.sku}</td>
+                  <td>
+                    <span className="font-semibold text-slate-900 block">{item.name}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-500">{item.location}</td>
-                  <td className="px-4 py-3">
-                    {item.status === 'OK' && <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded">HEALTHY</span>}
-                    {item.status === 'LOW' && <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded">LOW STOCK</span>}
-                    {item.status === 'CRITICAL' && <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded animate-pulse">REORDER NOW</span>}
+                  <td>
+                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td className="text-slate-500 text-xs">{item.location}</td>
+                  <td className="text-right font-medium text-slate-700">
+                    ${item.unitCost.toFixed(2)}
+                  </td>
+                  <td className="text-right">
+                    <span className="font-bold text-slate-900 text-sm">
+                      {item.qty.toFixed(item.unit === 'PCS' ? 0 : 1)}
+                    </span>{" "}
+                    <span className="text-[11px] text-slate-500">{item.unit}</span>
+                  </td>
+                  <td className="text-right text-slate-400 text-xs">
+                    {item.reorderLevel} {item.unit}
+                  </td>
+                  <td>
+                    {isCritical ? (
+                      <span className="hotel-status hotel-status-dirty">
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                        Critical Low
+                      </span>
+                    ) : isLow ? (
+                      <span className="hotel-status hotel-status-cleaning">
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                        Reorder Soon
+                      </span>
+                    ) : (
+                      <span className="hotel-status hotel-status-available">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        Healthy
+                      </span>
+                    )}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
-      <Modal isOpen={modalState.type === 'grn'} onClose={() => setModalState({ type: 'none' })} title="Receive Goods">
-        <div className="space-y-4">
+      {/* Receive Goods GRN Modal */}
+      <Modal
+        isOpen={isGrnModalOpen}
+        onClose={() => setIsGrnModalOpen(false)}
+        title="Receive Goods Note (GRN)"
+      >
+        <form onSubmit={handleReceiveGoodsSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Enter quantity of 'Craft Cola Syrup' received (Liters)</label>
-            <input 
-              type="number" 
-              className="input-field" 
-              placeholder="e.g. 20" 
-              value={grnQty} 
-              onChange={e => setGrnQty(e.target.value)}
+            <label className="block font-semibold text-slate-700 mb-1">Select Item *</label>
+            <select
+              value={selectedSku}
+              onChange={(e) => setSelectedSku(e.target.value)}
+              className="hotel-input"
+            >
+              {stock.map(s => (
+                <option key={s.sku} value={s.sku}>
+                  {s.name} ({s.sku}) — Current: {s.qty} {s.unit}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Quantity Received *
+            </label>
+            <input
+              type="number"
+              step="any"
+              placeholder="e.g. 25"
+              value={grnQty}
+              onChange={(e) => setGrnQty(e.target.value)}
+              className="hotel-input"
               autoFocus
+              required
             />
           </div>
-          <div className="flex justify-end gap-2 mt-6">
-            <button onClick={() => setModalState({ type: 'none' })} className="px-4 py-2 rounded-md hover:bg-slate-100 text-slate-700 font-medium transition-colors">Cancel</button>
-            <button onClick={handleReceiveGoodsSubmit} className="btn-primary">Process GRN</button>
-          </div>
-        </div>
-      </Modal>
 
-      <Modal isOpen={modalState.type === 'alert'} onClose={() => setModalState({ type: 'none' })} title="Inventory Notification">
-        <div className="space-y-6">
-          <p className="text-slate-700 font-medium">{modalState.message}</p>
-          <div className="flex justify-end">
-            <button onClick={() => setModalState({ type: 'none' })} className="btn-primary">OK</button>
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsGrnModalOpen(false)}
+              className="hotel-button hotel-button-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="hotel-button hotel-button-emerald"
+            >
+              Post to Inventory
+            </button>
           </div>
-        </div>
+        </form>
       </Modal>
-
     </div>
   );
 }

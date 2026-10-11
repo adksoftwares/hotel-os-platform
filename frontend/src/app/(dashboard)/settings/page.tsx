@@ -1,60 +1,154 @@
 "use client";
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Panel } from '@/components/ui/Panel';
 import { Modal } from '@/components/ui/Modal';
+import { 
+  ShieldCheck, Key, Plus, Lock, 
+  Receipt, BedDouble, Utensils, AlertTriangle, Check
+} from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 export default function PlatformSettings() {
+  const { toast } = useToast();
   const [sessions, setSessions] = useState([
-    { id: 'SUP-901F', initiatedBy: 'admin@hotel.com', expiresAt: '2024-10-02 18:00', status: 'ACTIVE' },
-    { id: 'SUP-1A3B', initiatedBy: 'manager@hotel.com', expiresAt: '2024-10-01 12:00', status: 'EXPIRED' }
+    { id: 'SUP-901F', initiatedBy: 'admin@hotel.com', expiresAt: '2026-10-12 18:00', status: 'ACTIVE' },
+    { id: 'SUP-1A3B', initiatedBy: 'manager@hotel.com', expiresAt: '2026-10-10 12:00', status: 'EXPIRED' }
   ]);
 
-  const [modalMessage, setModalMessage] = useState('');
-
   const handleGrant = () => {
-    const newId = `SUP-${Math.random().toString(16).substr(2, 4).toUpperCase()}`;
-    setSessions([{ id: newId, initiatedBy: 'admin@hotel.com', expiresAt: '2024-12-31 23:59', status: 'ACTIVE' }, ...sessions]);
-    setModalMessage('Temporary support access granted.');
+    const newId = `SUP-${Math.random().toString(16).substring(2, 6).toUpperCase()}`;
+    setSessions([{ id: newId, initiatedBy: 'admin@hotel.com', expiresAt: '2026-10-13 23:59', status: 'ACTIVE' }, ...sessions]);
+    toast('Temporary delegated support session active (24 hours).', 'success');
   };
 
   const handleRevoke = (id: string) => {
     setSessions(sessions.map(s => s.id === id ? { ...s, status: 'REVOKED' } : s));
-    setModalMessage('Support access immediately revoked.');
+    toast(`Support session ${id} immediately terminated.`, 'info');
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-900">Platform Settings & Security</h1>
-        <button onClick={handleGrant} className="btn-primary">Grant Support Access</button>
+    <div className="hotel-page">
+      <PageHeader
+        title="Hotel OS Configuration & Security"
+        description="Property metadata, tax master settings, audit permissions, and delegated support sessions."
+      />
+
+      {/* Quick Settings Configuration Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Link
+          href="/settings/tax"
+          className="hotel-panel p-4 hover:border-slate-300 hover:shadow-xs transition-all group block"
+        >
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700">
+              <Receipt className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 group-hover:text-emerald-800">
+                Tax & Levies Master
+              </h3>
+              <p className="text-[11px] text-slate-500">VAT, City Tax, and Inclusivity rules</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-emerald-800 mt-3 inline-block">
+            Configure Taxes →
+          </span>
+        </Link>
+
+        <Link
+          href="/settings/rooms/new"
+          className="hotel-panel p-4 hover:border-slate-300 hover:shadow-xs transition-all group block"
+        >
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+            <div className="p-2 rounded-lg bg-blue-50 text-blue-700">
+              <BedDouble className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 group-hover:text-blue-800">
+                Room Catalog Setup
+              </h3>
+              <p className="text-[11px] text-slate-500">Register new room keys & configurations</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-blue-800 mt-3 inline-block">
+            Add New Room →
+          </span>
+        </Link>
+
+        <Link
+          href="/settings/restaurant/food/new"
+          className="hotel-panel p-4 hover:border-slate-300 hover:shadow-xs transition-all group block"
+        >
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+            <div className="p-2 rounded-lg bg-amber-50 text-amber-700">
+              <Utensils className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 group-hover:text-amber-800">
+                Culinary Menu Master
+              </h3>
+              <p className="text-[11px] text-slate-500">Dish variants, kitchen routing & pricing</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-amber-800 mt-3 inline-block">
+            Create Menu Dish →
+          </span>
+        </Link>
       </div>
 
-      <div className="card">
-        <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 mb-4">Active Support Sessions</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-slate-500 font-medium">
+      {/* Support Sessions Panel */}
+      <Panel
+        title="Delegated Technical Support Sessions"
+        description="Generate temporary high-privilege access for support engineers without revealing passwords"
+        action={
+          <button
+            onClick={handleGrant}
+            className="hotel-button hotel-button-emerald text-xs"
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span>Grant Support Token</span>
+          </button>
+        }
+      >
+        <div className="hotel-table-wrap">
+          <table className="hotel-table">
+            <thead>
               <tr>
-                <th className="px-4 py-2">Session ID</th>
-                <th className="px-4 py-2">Initiated By</th>
-                <th className="px-4 py-2">Expires At</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2 text-right">Action</th>
+                <th>Session Token</th>
+                <th>Initiated By</th>
+                <th>Expires Timestamp</th>
+                <th>Status</th>
+                <th className="text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {sessions.map((session) => (
-                <tr key={session.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-primary-600">{session.id}</td>
-                  <td className="px-4 py-3">{session.initiatedBy}</td>
-                  <td className="px-4 py-3">{session.expiresAt}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${session.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                      {session.status}
-                    </span>
+                <tr key={session.id}>
+                  <td className="font-mono text-xs font-semibold text-slate-800">{session.id}</td>
+                  <td className="text-slate-600 text-xs">{session.initiatedBy}</td>
+                  <td className="text-slate-500 text-xs">{session.expiresAt}</td>
+                  <td>
+                    {session.status === 'ACTIVE' ? (
+                      <span className="hotel-status hotel-status-available">
+                        <Check className="w-3 h-3 shrink-0" />
+                        Active
+                      </span>
+                    ) : (
+                      <span className="hotel-status hotel-status-neutral">
+                        Expired
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="text-right">
                     {session.status === 'ACTIVE' && (
-                      <button onClick={() => handleRevoke(session.id)} className="text-red-600 hover:text-red-800 font-medium">Revoke</button>
+                      <button
+                        onClick={() => handleRevoke(session.id)}
+                        className="text-xs font-semibold text-rose-700 hover:text-rose-900 hover:underline"
+                      >
+                        Revoke Access
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -62,16 +156,7 @@ export default function PlatformSettings() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      <Modal isOpen={!!modalMessage} onClose={() => setModalMessage('')} title="Security Action">
-        <div className="space-y-6">
-          <p className="text-slate-700 font-medium">{modalMessage}</p>
-          <div className="flex justify-end">
-            <button onClick={() => setModalMessage('')} className="btn-primary">OK</button>
-          </div>
-        </div>
-      </Modal>
+      </Panel>
     </div>
   );
 }

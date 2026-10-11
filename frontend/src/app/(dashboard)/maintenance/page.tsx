@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Modal } from "@/components/ui/Modal";
+import { Wrench, Plus, CheckCircle2, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 type Priority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 type Status = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
@@ -11,41 +15,73 @@ interface MaintenanceIssue {
   issue: string;
   priority: Priority;
   status: Status;
+  reportedAt: string;
 }
 
 const mockIssues: MaintenanceIssue[] = [
-  { id: "1", roomNumber: "101", issue: "Leaking faucet", priority: "MEDIUM", status: "OPEN" },
-  { id: "2", roomNumber: "205", issue: "AC not cooling", priority: "HIGH", status: "IN_PROGRESS" },
-  { id: "3", roomNumber: "310", issue: "Broken TV remote", priority: "LOW", status: "OPEN" },
-  { id: "4", roomNumber: "105", issue: "No hot water", priority: "CRITICAL", status: "RESOLVED" },
-  { id: "5", roomNumber: "402", issue: "Light bulb burnt out", priority: "LOW", status: "CLOSED" },
+  { id: "1", roomNumber: "101", issue: "Bathroom sink faucet leaking slightly", priority: "MEDIUM", status: "OPEN", reportedAt: "Today 10:15 AM" },
+  { id: "2", roomNumber: "205", issue: "HVAC cooling unit cycling off prematurely", priority: "HIGH", status: "IN_PROGRESS", reportedAt: "Today 09:30 AM" },
+  { id: "3", roomNumber: "310", issue: "Broken TV remote battery cover missing", priority: "LOW", status: "OPEN", reportedAt: "Yesterday" },
+  { id: "4", roomNumber: "105", issue: "Main shower hot water pressure low", priority: "CRITICAL", status: "RESOLVED", reportedAt: "Today 08:00 AM" },
+  { id: "5", roomNumber: "402", issue: "Balcony light bulb burnt out", priority: "LOW", status: "CLOSED", reportedAt: "Oct 10" },
 ];
 
 export default function MaintenanceKanban() {
+  const { toast } = useToast();
   const [issues, setIssues] = useState<MaintenanceIssue[]>(mockIssues);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<Status | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newRoom, setNewRoom] = useState("");
+  const [newIssue, setNewIssue] = useState("");
+  const [newPriority, setNewPriority] = useState<Priority>("MEDIUM");
 
-  const columns: { title: string; status: Status; color: string }[] = [
-    { title: "Open", status: "OPEN", color: "border-t-red-400" },
-    { title: "In Progress", status: "IN_PROGRESS", color: "border-t-yellow-400" },
-    { title: "Resolved", status: "RESOLVED", color: "border-t-blue-400" },
-    { title: "Closed", status: "CLOSED", color: "border-t-green-400" },
+  const columns: { title: string; status: Status; color: string; badgeColor: string }[] = [
+    { title: "Open Issues", status: "OPEN", color: "border-t-rose-500", badgeColor: "bg-rose-100 text-rose-800" },
+    { title: "In Progress", status: "IN_PROGRESS", color: "border-t-amber-500", badgeColor: "bg-amber-100 text-amber-800" },
+    { title: "Resolved / Testing", status: "RESOLVED", color: "border-t-blue-500", badgeColor: "bg-blue-100 text-blue-800" },
+    { title: "Closed & Certified", status: "CLOSED", color: "border-t-emerald-600", badgeColor: "bg-emerald-100 text-emerald-800" },
   ];
 
   const moveIssue = (id: string, newStatus: Status) => {
     setIssues((prev) =>
       prev.map((issue) => (issue.id === id ? { ...issue, status: newStatus } : issue))
     );
+    toast(`Work order #${id} moved to ${newStatus}.`, "info");
   };
 
-  const getPriorityColor = (priority: Priority) => {
+  const handleCreateIssue = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoom.trim() || !newIssue.trim()) {
+      toast("Please enter both Room Number and Issue description.", "error");
+      return;
+    }
+    const created: MaintenanceIssue = {
+      id: Date.now().toString(),
+      roomNumber: newRoom.trim(),
+      issue: newIssue.trim(),
+      priority: newPriority,
+      status: "OPEN",
+      reportedAt: "Just now",
+    };
+    setIssues([created, ...issues]);
+    setIsAddModalOpen(false);
+    setNewRoom("");
+    setNewIssue("");
+    setNewPriority("MEDIUM");
+    toast(`Maintenance issue for Room ${created.roomNumber} logged.`, "success");
+  };
+
+  const getPriorityBadge = (priority: Priority) => {
     switch (priority) {
-      case "LOW": return "bg-green-100 text-green-800";
-      case "MEDIUM": return "bg-yellow-100 text-yellow-800";
-      case "HIGH": return "bg-orange-100 text-orange-800";
-      case "CRITICAL": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "LOW":
+        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">Low</span>;
+      case "MEDIUM":
+        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">Medium</span>;
+      case "HIGH":
+        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-orange-50 text-orange-800 border border-orange-200">High</span>;
+      case "CRITICAL":
+        return <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-800 border border-rose-200">Critical</span>;
     }
   };
 
@@ -75,13 +111,23 @@ export default function MaintenanceKanban() {
   };
 
   return (
-    <div className="p-6 h-screen flex flex-col bg-gray-50">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Maintenance Issues</h1>
-        <p className="text-sm text-slate-500">Drag cards between columns to update status</p>
-      </div>
+    <div className="hotel-page">
+      <PageHeader
+        title="Engineering & Maintenance Kanban"
+        description="Track physical plant work orders, room repairs, and operational equipment certifications."
+        action={
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="hotel-button hotel-button-emerald text-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Report Work Order</span>
+          </button>
+        }
+      />
 
-      <div className="flex-1 flex gap-6 overflow-x-auto pb-4">
+      {/* Kanban Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-6 items-start">
         {columns.map((column) => {
           const columnIssues = issues.filter((i) => i.status === column.status);
           const isOver = dragOver === column.status;
@@ -90,19 +136,25 @@ export default function MaintenanceKanban() {
               key={column.status}
               onDragOver={(e) => handleDragOver(e, column.status)}
               onDrop={(e) => handleDrop(e, column.status)}
-              className={`flex flex-col bg-gray-100 rounded-lg border-t-4 ${column.color} min-w-[300px] w-[300px] p-4 flex-shrink-0 transition-colors ${isOver ? "bg-blue-50 ring-2 ring-blue-300" : ""}`}
+              className={`bg-slate-50/80 rounded-xl border border-slate-200 border-t-4 ${column.color} p-3.5 flex flex-col transition-all min-h-[480px] ${
+                isOver ? "bg-blue-50/60 ring-2 ring-blue-300" : ""
+              }`}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-gray-700">{column.title}</h2>
-                <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <h2 className="font-bold text-xs uppercase tracking-wider text-slate-700">
+                  {column.title}
+                </h2>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${column.badgeColor}`}>
                   {columnIssues.length}
                 </span>
               </div>
 
-              <div className="flex-1 overflow-y-auto flex flex-col gap-3 min-h-[60px]">
+              <div className="flex-1 flex flex-col gap-2.5">
                 {columnIssues.length === 0 && (
-                  <div className={`flex-1 border-2 border-dashed rounded-lg flex items-center justify-center text-sm text-gray-400 p-4 ${isOver ? "border-blue-400 text-blue-400" : "border-gray-300"}`}>
-                    Drop here
+                  <div className={`flex-1 border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-slate-400 p-6 min-h-[120px] ${
+                    isOver ? "border-blue-400 text-blue-500 bg-blue-50" : "border-slate-300"
+                  }`}>
+                    Drag cards here
                   </div>
                 )}
                 {columnIssues.map((issue) => (
@@ -111,26 +163,33 @@ export default function MaintenanceKanban() {
                     draggable
                     onDragStart={(e) => handleDragStart(e, issue.id)}
                     onDragEnd={handleDragEnd}
-                    className={`bg-white p-4 rounded-md shadow-sm border border-gray-200 flex flex-col gap-2 cursor-grab active:cursor-grabbing select-none transition-opacity ${draggingId === issue.id ? "opacity-40" : "opacity-100"}`}
+                    className={`bg-white p-3.5 rounded-lg shadow-2xs border border-slate-200 hover:border-slate-300 hover:shadow-xs flex flex-col gap-2 cursor-grab active:cursor-grabbing select-none transition-all ${
+                      draggingId === issue.id ? "opacity-30 scale-95" : "opacity-100"
+                    }`}
                   >
                     <div className="flex justify-between items-start">
-                      <span className="font-bold text-gray-800">Room {issue.roomNumber}</span>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(issue.priority)}`}>
-                        {issue.priority}
-                      </span>
+                      <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
+                        <Wrench className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Room {issue.roomNumber}</span>
+                      </div>
+                      {getPriorityBadge(issue.priority)}
                     </div>
-                    <p className="text-sm text-gray-600">{issue.issue}</p>
+                    <p className="text-xs text-slate-700 leading-snug">{issue.issue}</p>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+                      <span>{issue.reportedAt}</span>
+                    </div>
 
-                    <div className="mt-2 pt-2 border-t border-gray-100 flex flex-wrap gap-2">
+                    {/* Accessible Status Move Buttons for keyboard / touch users */}
+                    <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
                       {columns.map(
                         (c) =>
                           c.status !== issue.status && (
                             <button
                               key={c.status}
                               onClick={() => moveIssue(issue.id, c.status)}
-                              className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
                             >
-                              → {c.title}
+                              → {c.title.split(" ")[0]}
                             </button>
                           )
                       )}
@@ -142,6 +201,75 @@ export default function MaintenanceKanban() {
           );
         })}
       </div>
+
+      {/* Report Maintenance Issue Modal */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Report Engineering Work Order"
+      >
+        <form onSubmit={handleCreateIssue} className="space-y-4 text-xs">
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Room or Location *
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. 204, Kitchen Cooler, Lobby Elevator"
+              value={newRoom}
+              onChange={(e) => setNewRoom(e.target.value)}
+              className="hotel-input"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Issue Description *
+            </label>
+            <textarea
+              rows={3}
+              placeholder="Detailed description of defect, symptom, or equipment failure..."
+              value={newIssue}
+              onChange={(e) => setNewIssue(e.target.value)}
+              className="hotel-input min-h-[72px]"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Priority Urgency
+            </label>
+            <select
+              value={newPriority}
+              onChange={(e) => setNewPriority(e.target.value as Priority)}
+              className="hotel-input"
+            >
+              <option value="LOW">Low (Cosmetic, non-disruptive)</option>
+              <option value="MEDIUM">Medium (Serviceable during shift)</option>
+              <option value="HIGH">High (Impacts guest stay)</option>
+              <option value="CRITICAL">Critical (Immediate safety / Out of Order)</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(false)}
+              className="hotel-button hotel-button-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="hotel-button hotel-button-emerald"
+            >
+              Submit Work Order
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

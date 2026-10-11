@@ -3,11 +3,15 @@ import React, { useEffect, useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { io } from 'socket.io-client';
 import { 
-  Users, Bed, Home, Key, LogOut, CheckCircle, 
+  Users, BedDouble, Key, LogOut, CheckCircle2, 
   Utensils, ChefHat, Clock, AlertTriangle, RefreshCw, 
-  DollarSign, CreditCard, Receipt, Wrench, Ban
+  DollarSign, CreditCard, Receipt, Wrench, Sparkles, 
+  ArrowUpRight, Plus, ExternalLink, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Panel } from '@/components/ui/Panel';
 
 const fetcher = async (url: string) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -27,13 +31,21 @@ const fetcher = async (url: string) => {
 
 export default function Dashboard() {
   const propertyId = 'default-property-id';
-  const { data, error, isLoading } = useSWR(`http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`, fetcher, { refreshInterval: 1000 });
+  const { data, error, isLoading } = useSWR(
+    `http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`,
+    fetcher,
+    { refreshInterval: 5000, revalidateOnFocus: true }
+  );
+
   const [socketConnected, setSocketConnected] = useState(false);
   const [localKots, setLocalKots] = useState<any[]>([]);
 
   useEffect(() => {
     const updateLocal = () => {
-      try { const s = localStorage.getItem('kds_kots'); if(s) setLocalKots(JSON.parse(s)); } catch(e) {}
+      try {
+        const s = localStorage.getItem('kds_kots');
+        if (s) setLocalKots(JSON.parse(s));
+      } catch (e) {}
     };
     updateLocal();
     window.addEventListener('kots_updated', updateLocal);
@@ -45,24 +57,22 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const socket = io('http://localhost:3001', { query: { propertyId } });
+    const socket = io('http://localhost:3001', { query: { propertyId }, reconnectionAttempts: 3, timeout: 2000 });
     
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
+    socket.on('connect_error', () => setSocketConnected(false));
     
-    // Listen to generic invalidation event from backend or cross-tab
     socket.on('dashboard.updated', () => {
       mutate(`http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`);
     });
 
     const handleStorage = (e: StorageEvent) => {
-      // Also fallback to localStorage events (used by POS/Kitchen in previous prompts)
       if (e.key === 'kots_updated' || e.key === 'pos_updated') {
         mutate(`http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`);
       }
     };
     window.addEventListener('storage', handleStorage);
-    // Also listen to local window events
     window.addEventListener('kots_updated', () => mutate(`http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`));
 
     return () => {
@@ -72,28 +82,27 @@ export default function Dashboard() {
     };
   }, []);
 
-  if (isLoading) return <div className="flex h-64 items-center justify-center"><RefreshCw className="w-8 h-8 text-primary-500 animate-spin" /></div>;
   const fallbackData = {
     hotel: {
-      totalRooms: 9,
-      occupancyRate: 78,
-      occupiedRooms: 7,
-      vacantRooms: 2,
-      reservedRooms: 0,
+      totalRooms: 12,
+      occupancyRate: 75,
+      occupiedRooms: 9,
+      vacantRooms: 3,
+      reservedRooms: 2,
       todayArrivals: 4,
       todayDepartures: 3,
-      inHouseGuests: 7,
+      inHouseGuests: 14,
     },
     housekeeping: {
       dirtyRooms: 2,
       cleaningRooms: 1,
-      readyRooms: 3,
+      readyRooms: 5,
       maintenanceRooms: 1,
-      inspectionRooms: 2,
+      inspectionRooms: 3,
     },
     restaurant: {
       activeOrders: 4,
-      activeKots: 4,
+      activeKots: 3,
       preparingKots: 2,
       readyKots: 1,
       occupiedTables: 3,
@@ -119,156 +128,371 @@ export default function Dashboard() {
     };
   }
 
+  const currentDateStr = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Live Operational Command Center</h1>
-          <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
-            <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-            <span className="text-slate-300">|</span>
-            <span className="flex items-center gap-1">
-              <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></span>
-              {socketConnected ? 'Live Connection Active' : 'Live Connection Unavailable (Retrying)'}
+    <div className="hotel-page">
+      {/* Header with Practical Staff Metadata */}
+      <PageHeader
+        title="Operational Command Center"
+        description="Live hospitality operations overview for Front Desk, Housekeeping, Restaurant, and Cashier."
+        badge={
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+            socketConnected 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+              : 'bg-slate-100 text-slate-600 border border-slate-200'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            {socketConnected ? 'Live Real-Time Sync' : 'Local Operational Mode'}
+          </span>
+        }
+        action={
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-md border border-slate-200">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              {currentDateStr}
             </span>
-            <span className="text-slate-300">|</span>
-            <span className="text-xs text-slate-400">Updated just now</span>
-          </p>
+            <button
+              onClick={() => mutate(`http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`)}
+              className="hotel-button hotel-button-secondary text-xs"
+              title="Refresh metrics"
+              aria-label="Refresh operational metrics"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+              <span>Refresh</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Operational Flow Strip: High Priority Metrics */}
+      <section aria-label="Key Hotel Operations" className="mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+          {/* Occupancy Card */}
+          <Link 
+            href="/rooms" 
+            className="hotel-panel p-4 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <span>Occupancy</span>
+              <BedDouble className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 transition-colors" />
+            </div>
+            <div className="my-2">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">
+                {displayData.hotel.occupancyRate}%
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {displayData.hotel.occupiedRooms} occupied / {displayData.hotel.vacantRooms} vacant
+              </p>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div 
+                className="bg-emerald-700 h-full rounded-full transition-all duration-500" 
+                style={{ width: `${Math.min(100, displayData.hotel.occupancyRate)}%` }}
+              />
+            </div>
+          </Link>
+
+          {/* Today's Arrivals */}
+          <Link 
+            href="/front-desk" 
+            className="hotel-panel p-4 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <span>Today's Arrivals</span>
+              <Key className="w-4 h-4 text-slate-400 group-hover:text-blue-700 transition-colors" />
+            </div>
+            <div className="my-2">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">
+                {displayData.hotel.todayArrivals}
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">Guests expected</p>
+            </div>
+            <span className="text-[11px] text-blue-700 font-medium flex items-center gap-1">
+              Front Desk Check-in <ArrowUpRight className="w-3 h-3" />
+            </span>
+          </Link>
+
+          {/* Today's Departures */}
+          <Link 
+            href="/front-desk" 
+            className="hotel-panel p-4 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <span>Today's Departures</span>
+              <LogOut className="w-4 h-4 text-slate-400 group-hover:text-amber-700 transition-colors" />
+            </div>
+            <div className="my-2">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">
+                {displayData.hotel.todayDepartures}
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">Folios to settle</p>
+            </div>
+            <span className="text-[11px] text-amber-700 font-medium flex items-center gap-1">
+              Express Checkout <ArrowUpRight className="w-3 h-3" />
+            </span>
+          </Link>
+
+          {/* In-House Guests */}
+          <Link 
+            href="/reservations" 
+            className="hotel-panel p-4 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group"
+          >
+            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <span>In-House Guests</span>
+              <Users className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 transition-colors" />
+            </div>
+            <div className="my-2">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">
+                {displayData.hotel.inHouseGuests}
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">Currently registered</p>
+            </div>
+            <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
+              Guest Ledger <ArrowUpRight className="w-3 h-3" />
+            </span>
+          </Link>
+
+          {/* Reserved Rooms */}
+          <Link 
+            href="/reservations" 
+            className="hotel-panel p-4 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group col-span-2 md:col-span-1"
+          >
+            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <span>Upcoming Bookings</span>
+              <CheckCircle2 className="w-4 h-4 text-slate-400 group-hover:text-purple-700 transition-colors" />
+            </div>
+            <div className="my-2">
+              <span className="text-2xl font-bold text-slate-900 tracking-tight">
+                {displayData.hotel.reservedRooms}
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">Confirmed future</p>
+            </div>
+            <span className="text-[11px] text-purple-700 font-medium flex items-center gap-1">
+              Booking Grid <ArrowUpRight className="w-3 h-3" />
+            </span>
+          </Link>
         </div>
-        <button onClick={() => mutate(`http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`)} className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-lg border border-slate-200 shadow-sm transition-colors">
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
-        {/* Hotel Operations */}
-        <div className="lg:col-span-4">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Hotel Operations</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <Link href="/rooms" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-primary-300 hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-medium text-slate-500 group-hover:text-primary-600">Occupancy Rate</p>
-                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><Home className="w-4 h-4" /></div>
-              </div>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{displayData.hotel.occupancyRate}%</p>
-              <div className="mt-1 text-xs text-slate-400 flex gap-2">
-                <span>{displayData.hotel.occupiedRooms} Occupied</span>
-                <span>{displayData.hotel.vacantRooms} Vacant</span>
-              </div>
-            </Link>
-            
-            <Link href="/front-desk" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-medium text-slate-500 group-hover:text-indigo-600">Today's Arrivals</p>
-                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><Key className="w-4 h-4" /></div>
-              </div>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{displayData.hotel.todayArrivals}</p>
-            </Link>
+      {/* Main Departmental Workstations Matrix */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <Link href="/front-desk" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-orange-300 hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-medium text-slate-500 group-hover:text-orange-600">Today's Departures</p>
-                <div className="p-1.5 bg-orange-50 text-orange-600 rounded-lg"><LogOut className="w-4 h-4" /></div>
-              </div>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{displayData.hotel.todayDepartures}</p>
+        {/* Column 1: Rooms & Housekeeping Readiness */}
+        <Panel
+          title="Rooms & Housekeeping Readiness"
+          description="Live state of hotel rooms for check-in eligibility"
+          action={
+            <Link 
+              href="/rooms" 
+              className="text-xs font-semibold text-emerald-800 hover:underline flex items-center gap-1"
+            >
+              Open Room Board <ExternalLink className="w-3 h-3" />
             </Link>
-
-            <Link href="/rooms" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-medium text-slate-500 group-hover:text-emerald-600">In-House Guests</p>
-                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><Users className="w-4 h-4" /></div>
+          }
+        >
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/50">
+              <div className="flex items-center justify-between text-xs text-emerald-800 font-medium">
+                <span>Clean & Ready</span>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
               </div>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{displayData.hotel.inHouseGuests}</p>
-            </Link>
+              <p className="text-2xl font-bold text-emerald-900 mt-1">
+                {displayData.housekeeping.readyRooms}
+              </p>
+              <span className="text-[11px] text-emerald-700">Immediate check-in</span>
+            </div>
 
-            <Link href="/reservations" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-purple-300 hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-medium text-slate-500 group-hover:text-purple-600">Reserved Rooms</p>
-                <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg"><Bed className="w-4 h-4" /></div>
+            <div className="p-3 rounded-lg border border-amber-200 bg-amber-50/50">
+              <div className="flex items-center justify-between text-xs text-amber-800 font-medium">
+                <span>In Cleaning</span>
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
               </div>
-              <p className="text-2xl font-bold text-slate-900 mt-2">{displayData.hotel.reservedRooms}</p>
+              <p className="text-2xl font-bold text-amber-900 mt-1">
+                {displayData.housekeeping.cleaningRooms}
+              </p>
+              <span className="text-[11px] text-amber-700">Housekeeper active</span>
+            </div>
+
+            <div className="p-3 rounded-lg border border-rose-200 bg-rose-50/50">
+              <div className="flex items-center justify-between text-xs text-rose-800 font-medium">
+                <span>Dirty / Checkout</span>
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+              </div>
+              <p className="text-2xl font-bold text-rose-900 mt-1">
+                {displayData.housekeeping.dirtyRooms}
+              </p>
+              <span className="text-[11px] text-rose-700">Needs service</span>
+            </div>
+
+            <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
+              <div className="flex items-center justify-between text-xs text-slate-700 font-medium">
+                <span>Maintenance</span>
+                <Wrench className="w-3.5 h-3.5 text-slate-500" />
+              </div>
+              <p className="text-2xl font-bold text-slate-800 mt-1">
+                {displayData.housekeeping.maintenanceRooms}
+              </p>
+              <span className="text-[11px] text-slate-500">Out of order</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-md bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+            <span className="text-slate-600 font-medium">Quick Housekeeping Portal</span>
+            <Link 
+              href="/rooms/housekeeper" 
+              className="font-semibold text-emerald-800 hover:text-emerald-900 hover:underline"
+            >
+              Open Maid Terminal →
             </Link>
           </div>
-        </div>
+        </Panel>
 
-        {/* Rooms & Housekeeping */}
-        <div className="lg:col-span-2">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Rooms & Housekeeping</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <Link href="/rooms" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-rose-300 hover:shadow-md transition-all flex flex-col justify-between">
-              <p className="text-sm font-medium text-slate-500">Dirty Rooms</p>
-              <p className="text-3xl font-bold text-rose-600 mt-1">{displayData.housekeeping.dirtyRooms}</p>
+        {/* Column 2: Restaurant & Kitchen Pulse */}
+        <Panel
+          title="Restaurant & Kitchen Pulse"
+          description="Live dining orders, KDS tickets, and table turns"
+          action={
+            <Link 
+              href="/pos" 
+              className="text-xs font-semibold text-emerald-800 hover:underline flex items-center gap-1"
+            >
+              Launch POS <ExternalLink className="w-3 h-3" />
             </Link>
-            <Link href="/rooms" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between">
-              <p className="text-sm font-medium text-slate-500">Cleaning</p>
-              <p className="text-3xl font-bold text-amber-500 mt-1">{displayData.housekeeping.cleaningRooms}</p>
-            </Link>
-            <Link href="/rooms" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between">
-              <p className="text-sm font-medium text-slate-500">Ready</p>
-              <p className="text-3xl font-bold text-emerald-500 mt-1">{displayData.housekeeping.readyRooms}</p>
-            </Link>
-            <Link href="/rooms" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-slate-400 hover:shadow-md transition-all flex flex-col justify-between">
-              <p className="text-sm font-medium text-slate-500">Maintenance / OOS</p>
-              <p className="text-3xl font-bold text-slate-700 mt-1">{displayData.housekeeping.maintenanceRooms}</p>
-            </Link>
-          </div>
-        </div>
-
-        {/* Restaurant Operations */}
-        <div className="lg:col-span-2">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Restaurant Operations</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <Link href="/pos" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between">
-              <div className="flex justify-between"><p className="text-sm font-medium text-slate-500">Active Orders</p><Utensils className="w-4 h-4 text-slate-400" /></div>
-              <p className="text-3xl font-bold text-indigo-600 mt-1">{displayData.restaurant.activeOrders}</p>
-            </Link>
-            <Link href="/kitchen" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-orange-300 hover:shadow-md transition-all flex flex-col justify-between">
-              <div className="flex justify-between"><p className="text-sm font-medium text-slate-500">Active KOTs</p><ChefHat className="w-4 h-4 text-slate-400" /></div>
-              <p className="text-3xl font-bold text-orange-600 mt-1">{displayData.restaurant.activeKots}</p>
-              <div className="mt-1 text-xs text-slate-400 flex gap-2">
-                <span>{displayData.restaurant.preparingKots} Preparing</span>
-                <span>{displayData.restaurant.readyKots} Ready</span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="p-3 rounded-lg border border-slate-200 bg-white">
+              <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+                <span>Active Tables</span>
+                <Utensils className="w-3.5 h-3.5 text-slate-400" />
               </div>
-            </Link>
-            <Link href="/pos" className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between">
-              <p className="text-sm font-medium text-slate-500">Occupied Tables</p>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{displayData.restaurant.occupiedTables}</p>
-            </Link>
-            <Link href="/kitchen" className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm hover:border-red-300 transition-all flex flex-col justify-between">
-              <div className="flex justify-between"><p className="text-sm font-medium text-red-600">Delayed KOTs</p><AlertTriangle className="w-4 h-4 text-red-500" /></div>
-              <p className="text-3xl font-bold text-red-700 mt-1">{displayData.restaurant.delayedKots}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {displayData.restaurant.occupiedTables}
+              </p>
+              <span className="text-[11px] text-slate-500">Dining guests</span>
+            </div>
+
+            <div className="p-3 rounded-lg border border-slate-200 bg-white">
+              <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+                <span>KOTs in Prep</span>
+                <ChefHat className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {displayData.restaurant.preparingKots}
+              </p>
+              <span className="text-[11px] text-slate-500">Kitchen cooking</span>
+            </div>
+
+            <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/40">
+              <div className="flex items-center justify-between text-xs text-emerald-800 font-medium">
+                <span>Ready to Serve</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <p className="text-2xl font-bold text-emerald-900 mt-1">
+                {displayData.restaurant.readyKots}
+              </p>
+              <span className="text-[11px] text-emerald-700">Expedite to table</span>
+            </div>
+
+            <div className={`p-3 rounded-lg border ${
+              displayData.restaurant.delayedKots > 0 
+                ? 'border-rose-300 bg-rose-50/60' 
+                : 'border-slate-200 bg-slate-50'
+            }`}>
+              <div className="flex items-center justify-between text-xs text-rose-800 font-medium">
+                <span>Delayed KOTs</span>
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+              </div>
+              <p className={`text-2xl font-bold mt-1 ${
+                displayData.restaurant.delayedKots > 0 ? 'text-rose-900' : 'text-slate-700'
+              }`}>
+                {displayData.restaurant.delayedKots}
+              </p>
+              <span className="text-[11px] text-rose-700">&gt; 15 mins prep time</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-md bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+            <span className="text-slate-600 font-medium">Live Kitchen KDS Screen</span>
+            <Link 
+              href="/kitchen" 
+              className="font-semibold text-emerald-800 hover:text-emerald-900 hover:underline"
+            >
+              Open Kitchen KDS →
             </Link>
           </div>
-        </div>
+        </Panel>
 
-        {/* Financial Snapshot */}
-        <div className="lg:col-span-4">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Financial Snapshot (Today)</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/billing" className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-emerald-300 transition-colors">
+        {/* Column 3: Daily Financial Pulse */}
+        <Panel
+          title="Daily Cashier & Folio Pulse"
+          description="Audited revenues, collections, and open guest balances"
+          action={
+            <Link 
+              href="/billing" 
+              className="text-xs font-semibold text-emerald-800 hover:underline flex items-center gap-1"
+            >
+              Cashier Desk <ExternalLink className="w-3 h-3" />
+            </Link>
+          }
+        >
+          <div className="space-y-3 mb-4">
+            <div className="p-3.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500">Today's Revenue</p>
-                <p className="text-2xl font-bold text-emerald-600 mt-1">${displayData.financial.todayRevenue.toFixed(2)}</p>
+                <span className="text-xs font-medium text-slate-500 block">Today's Settled Revenue</span>
+                <span className="text-xl font-bold text-slate-900 block mt-0.5">
+                  ${displayData.financial.todayRevenue.toFixed(2)}
+                </span>
+                <span className="text-[11px] text-slate-400">Rooms + POS + Services</span>
               </div>
-              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600"><DollarSign className="w-6 h-6" /></div>
-            </Link>
-            <Link href="/billing" className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-blue-300 transition-colors">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                <DollarSign className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500">Collected Payments</p>
-                <p className="text-2xl font-bold text-blue-600 mt-1">${displayData.financial.todayPayments.toFixed(2)}</p>
+                <span className="text-xs font-medium text-slate-500 block">Collected Payments</span>
+                <span className="text-xl font-bold text-slate-900 block mt-0.5">
+                  ${displayData.financial.todayPayments.toFixed(2)}
+                </span>
+                <span className="text-[11px] text-emerald-700">Cash, Cards & Bank Transfers</span>
               </div>
-              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600"><CreditCard className="w-6 h-6" /></div>
-            </Link>
-            <Link href="/billing" className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-rose-300 transition-colors">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                <CreditCard className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-500">Outstanding Balance</p>
-                <p className="text-2xl font-bold text-rose-600 mt-1">${displayData.financial.outstanding.toFixed(2)}</p>
+                <span className="text-xs font-medium text-slate-500 block">Outstanding Guest Balance</span>
+                <span className="text-xl font-bold text-rose-700 block mt-0.5">
+                  ${displayData.financial.outstanding.toFixed(2)}
+                </span>
+                <span className="text-[11px] text-slate-400">Due at checkout</span>
               </div>
-              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center text-rose-600"><Receipt className="w-6 h-6" /></div>
+              <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center font-bold">
+                <Receipt className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-md bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+            <span className="text-slate-600 font-medium">Daily Revenue Audit Report</span>
+            <Link 
+              href="/reports/daily-revenue" 
+              className="font-semibold text-emerald-800 hover:text-emerald-900 hover:underline"
+            >
+              View Full Report →
             </Link>
           </div>
-        </div>
+        </Panel>
 
       </div>
     </div>
