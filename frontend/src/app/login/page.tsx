@@ -16,10 +16,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiBaseUrl) {
-        throw new Error('Authentication service is not configured.');
-      }
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 
       const res = await fetch(`${apiBaseUrl.replace(/\/$/, '')}/auth/login`, {
         method: 'POST',

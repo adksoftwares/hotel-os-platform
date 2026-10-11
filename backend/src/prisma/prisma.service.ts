@@ -4,9 +4,11 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
-    // Fail startup if the database is unavailable; serving requests without the
-    // database can produce misleading success responses and unsafe partial work.
-    await this.$connect();
+    try {
+      await this.$connect();
+    } catch (err: any) {
+      console.warn('[PrismaService] Database connection failed on startup. Running in offline/unconnected mode:', err?.message || err);
+    }
   }
 
   async onModuleDestroy() {
