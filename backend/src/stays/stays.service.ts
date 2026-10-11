@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as crypto from 'crypto';
 
@@ -8,22 +8,46 @@ export class StaysService {
 
   async checkIn(propertyId: string, reservationId: string, roomId: string, staffId: string) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Validate Reservation
       const reservation = await tx.reservation.findFirst({
         where: { id: reservationId, propertyId },
         include: { guest: true }
       });
       if (!reservation) throw new NotFoundException('Reservation not found');
-      if (reservation.status !== 'CONFIRMED') throw new BadRequestException('Reservation must be CONFIRMED to check-in');
+      if (reservation.status !== 'CONFIRMED') {
+        throw new ConflictException('Reservation must be CONFIRMED to check-in');
+      }
 
-      // 2. Validate Room
       const room = await tx.room.findFirst({ where: { id: roomId, propertyId } });
       if (!room) throw new NotFoundException('Room not found');
-      if (room.occupancyStatus !== 'VACANT') throw new BadRequestException('Room is not VACANT');
-      if (room.operationalStatus !== 'AVAILABLE') throw new BadRequestException('Room is not AVAILABLE');
-      if (room.housekeepingStatus !== 'CLEAN') throw new BadRequestException('Room must be CLEAN for check-in');
+      if (room.roomTypeId !== reservation.roomTypeId || (reservation.roomId && reservation.roomId !== roomId)) {
+        throw new BadRequestException('The room does not match this reservation');
+      }
 
-      // 3. Create Folio
+      // Claim both resources conditionally inside the transaction. This prevents
+      // two concurrent requests from checking in guests to the same room or
+      // consuming the same reservation.
+      const claimedRoom = await tx.room.updateMany({
+        where: {
+          id: roomId,
+          propertyId,
+          occupancyStatus: 'VACANT',
+          operationalStatus: 'AVAILABLE',
+          housekeepingStatus: 'CLEAN'
+        },
+        data: { occupancyStatus: 'OCCUPIED' }
+      });
+      if (claimedRoom.count !== 1) {
+        throw new ConflictException('Room is no longer available for check-in');
+      }
+
+      const claimedReservation = await tx.reservation.updateMany({
+        where: { id: reservationId, propertyId, status: 'CONFIRMED' },
+        data: { status: 'CHECKED_IN' }
+      });
+      if (claimedReservation.count !== 1) {
+        throw new ConflictException('Reservation has already been checked in or changed');
+      }
+
       const folioNumber = `FOL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
       const folio = await tx.folio.create({
         data: {
@@ -35,7 +59,6 @@ export class StaysService {
         }
       });
 
-      // 4. Create Stay
       const stay = await tx.stay.create({
         data: {
           propertyId,
@@ -48,31 +71,19 @@ export class StaysService {
         }
       });
 
-      // 5. Assign Room History
       await tx.stayRoomAssignment.create({
         data: { stayId: stay.id, roomId: room.id }
       });
 
-      // 6. Update Folio with Inverse Relation
       await tx.folio.update({
         where: { id: folio.id, propertyId },
         data: { stayId: stay.id }
       });
 
-      // 7. Update Reservation & Room Status
-      await tx.reservation.update({
-        where: { id: reservationId, propertyId },
-        data: { status: 'CHECKED_IN' }
-      });
-      await tx.room.update({
-        where: { id: roomId, propertyId },
-        data: { occupancyStatus: 'OCCUPIED' }
-      });
-
-      // 8. Audit Log
       await tx.auditLog.create({
         data: {
-          propertyId, action: 'GUEST_CHECK_IN',
+          propertyId,
+          action: 'GUEST_CHECK_IN',
           entity: 'Stay',
           entityId: stay.id,
           userId: staffId,
@@ -81,6 +92,8 @@ export class StaysService {
       });
 
       return stay;
+    }, {
+      isolationLevel: 'Serializable'
     });
   }
 
@@ -91,22 +104,24 @@ export class StaysService {
         include: { folio: true }
       });
       if (!stay) throw new NotFoundException('Stay not found');
-      if (stay.status !== 'ACTIVE') throw new BadRequestException('Stay is not active');
-      if (Number(stay.folio.balance) > 0) throw new BadRequestException('Folio has outstanding balance. Please settle before checkout.');
+      if (stay.status !== 'ACTIVE') throw new ConflictException('Stay is not active');
+      if (Number(stay.folio.balance) > 0) {
+        throw new BadRequestException('Folio has outstanding balance. Please settle before checkout.');
+      }
 
-      // Complete stay
-      const completedStay = await tx.stay.update({
-        where: { id: stayId, propertyId },
+      const completed = await tx.stay.updateMany({
+        where: { id: stayId, propertyId, status: 'ACTIVE' },
         data: { status: 'COMPLETED', actualCheckOutAt: new Date() }
       });
+      if (completed.count !== 1) {
+        throw new ConflictException('Stay has already been checked out or changed');
+      }
 
-      // Update room to vacant/dirty
-      await tx.room.update({
-        where: { id: stay.roomId, propertyId },
+      await tx.room.updateMany({
+        where: { id: stay.roomId, propertyId, occupancyStatus: 'OCCUPIED' },
         data: { occupancyStatus: 'VACANT', housekeepingStatus: 'DIRTY' }
       });
-      
-      // Auto-trigger housekeeping cleaning task
+
       await tx.housekeepingTask.create({
         data: {
           roomId: stay.roomId,
@@ -118,10 +133,10 @@ export class StaysService {
         }
       });
 
-      // Audit Log
       await tx.auditLog.create({
         data: {
-          propertyId, action: 'GUEST_CHECK_OUT',
+          propertyId,
+          action: 'GUEST_CHECK_OUT',
           entity: 'Stay',
           entityId: stayId,
           userId: staffId,
@@ -129,10 +144,9 @@ export class StaysService {
         }
       });
 
-      return completedStay;
+      return tx.stay.findUnique({ where: { id: stayId, propertyId } });
+    }, {
+      isolationLevel: 'Serializable'
     });
   }
 }
-
-
-
