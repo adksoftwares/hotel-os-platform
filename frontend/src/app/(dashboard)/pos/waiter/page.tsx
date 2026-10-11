@@ -255,7 +255,7 @@ export default function WaiterHandheldPOS() {
                 </span>
                 <span className="text-xs text-slate-400">Server: <strong className="text-slate-200">{waiterName}</strong></span>
               </div>
-              <h1 className="text-xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
+              <h1 className="text-xl font-bold !text-white tracking-tight mt-0.5 flex items-center gap-2">
                 Handheld Order & Course Station
               </h1>
             </div>
@@ -382,7 +382,7 @@ export default function WaiterHandheldPOS() {
                       {item.course}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-white text-sm line-clamp-1 group-hover:text-blue-300 transition">
+                  <h3 className="font-semibold !text-white text-sm line-clamp-1 group-hover:!text-blue-300 transition">
                     {item.name}
                   </h3>
                   {item.dietary && (
@@ -408,7 +408,7 @@ export default function WaiterHandheldPOS() {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <h2 className="font-bold text-white text-base">Active Order Ticket</h2>
+                <h2 className="font-bold !text-white text-base">Active Order Ticket</h2>
               </div>
               <p className="text-xs text-slate-400">{selectedTable} • {guestCovers} Covers</p>
             </div>
