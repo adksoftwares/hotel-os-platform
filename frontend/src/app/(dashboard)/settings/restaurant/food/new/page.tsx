@@ -153,13 +153,13 @@ export default function AddFoodPage() {
                       }}
                     />
                   </div>
-                  <div className="w-32">
+                  <div className="w-36">
                     <div className="relative">
-                      <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+                      <span className="absolute left-3 top-2 text-slate-400 text-xs font-semibold">LKR</span>
                       <input 
                         type="number" min="0" 
                         placeholder="Price Adj."
-                        className="w-full rounded-lg border border-slate-300 pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                        className="w-full rounded-lg border border-slate-300 pl-11 pr-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                         value={variant.priceAdjustment}
                         onChange={e => {
                           const newV = [...variants];
@@ -205,13 +205,13 @@ export default function AddFoodPage() {
                       }}
                     />
                   </div>
-                  <div className="w-32">
+                  <div className="w-36">
                     <div className="relative">
-                      <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+                      <span className="absolute left-3 top-2 text-slate-400 text-xs font-semibold">LKR</span>
                       <input 
                         type="number" min="0" 
                         placeholder="Add Price"
-                        className="w-full rounded-lg border border-slate-300 pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                        className="w-full rounded-lg border border-slate-300 pl-11 pr-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                         value={mod.price}
                         onChange={e => {
                           const newM = [...modifiers];
@@ -241,12 +241,12 @@ export default function AddFoodPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Base Price</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Base Price (LKR)</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-slate-500 font-medium">$</span>
+                  <span className="absolute left-3 top-2 text-slate-500 font-semibold text-xs">LKR</span>
                   <input 
                     type="number" min="0" 
-                    className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    className="w-full rounded-lg border border-slate-300 pl-12 pr-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                     placeholder="0.00"
                     value={formData.price}
                     onChange={e => setFormData({...formData, price: e.target.value.includes("-") ? "0" : e.target.value})}
@@ -255,12 +255,12 @@ export default function AddFoodPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cost Price</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Cost Price (LKR)</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-slate-500 font-medium">$</span>
+                  <span className="absolute left-3 top-2 text-slate-500 font-semibold text-xs">LKR</span>
                   <input 
                     type="number" min="0" 
-                    className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    className="w-full rounded-lg border border-slate-300 pl-12 pr-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                     placeholder="0.00"
                     value={formData.cost}
                     onChange={e => setFormData({...formData, cost: e.target.value.includes("-") ? "0" : e.target.value})}
@@ -356,7 +356,7 @@ export default function AddFoodPage() {
                   <DollarSign className="w-3.5 h-3.5 text-slate-400" />
                   Selling Price
                 </span>
-                <span className="font-bold text-slate-800">${parseFloat(formData.price || '0').toFixed(2)}</span>
+                <span className="font-bold text-slate-800">LKR {parseFloat(formData.price || '0').toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200/60">
                 <span className="text-slate-500 font-medium flex items-center gap-1.5">

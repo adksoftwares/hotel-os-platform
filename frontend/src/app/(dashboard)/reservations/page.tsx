@@ -336,7 +336,7 @@ export default function ReservationsPage() {
                               <div className="truncate pr-2">
                                 <span className="font-bold truncate">{res.guestName}</span>
                                 <span className="hidden sm:inline-block text-[10px] text-white/80 ml-1.5">
-                                  ({res.nights}n · ${res.totalAmount})
+                                  ({res.nights}n · LKR {res.totalAmount})
                                 </span>
                               </div>
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/20 font-mono shrink-0">
@@ -434,9 +434,9 @@ export default function ReservationsPage() {
                       <p className="text-[11px] text-slate-400">{res.nights} Nights</p>
                     </td>
                     <td className="p-4">
-                      <p className="font-bold text-slate-900">${res.totalAmount.toFixed(2)}</p>
+                      <p className="font-bold text-slate-900">LKR {res.totalAmount.toFixed(2)}</p>
                       <p className={`text-[11px] ${res.paidAmount >= res.totalAmount ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {res.paidAmount >= res.totalAmount ? 'Fully Settled' : `Due: $${(res.totalAmount - res.paidAmount).toFixed(2)}`}
+                        {res.paidAmount >= res.totalAmount ? 'Fully Settled' : `Due: LKR ${(res.totalAmount - res.paidAmount).toFixed(2)}`}
                       </p>
                     </td>
                     <td className="p-4">
@@ -514,15 +514,15 @@ export default function ReservationsPage() {
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
                 <div className="flex justify-between">
                   <span>Room Charges:</span>
-                  <span className="font-bold text-slate-900">${selectedRes.totalAmount.toFixed(2)}</span>
+                  <span className="font-bold text-slate-900">LKR {selectedRes.totalAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-emerald-600">
                   <span>Advance Paid:</span>
-                  <span className="font-bold">-${selectedRes.paidAmount.toFixed(2)}</span>
+                  <span className="font-bold">-LKR {selectedRes.paidAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-slate-200 font-bold text-sm text-slate-900">
                   <span>Balance Outstanding:</span>
-                  <span className="text-blue-600">${Math.max(0, selectedRes.totalAmount - selectedRes.paidAmount).toFixed(2)}</span>
+                  <span className="text-blue-600">LKR {Math.max(0, selectedRes.totalAmount - selectedRes.paidAmount).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -670,7 +670,7 @@ export default function ReservationsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Rate Per Night ($)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Rate Per Night (LKR)</label>
                   <input
                     type="number"
                     min="0"
@@ -681,7 +681,7 @@ export default function ReservationsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Advance Deposit ($)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Advance Deposit (LKR)</label>
                   <input
                     type="number"
                     min="0"

@@ -31,7 +31,7 @@ const initialNotifications: NotificationItem[] = [
   {
     id: '2',
     title: 'Table 4 Bill Requested',
-    description: 'Server requested final folio settlement for $142.50.',
+    description: 'Server requested final folio settlement for LKR 14,250.00.',
     time: '5 mins ago',
     type: 'urgent',
     read: false,

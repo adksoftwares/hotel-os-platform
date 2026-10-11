@@ -416,7 +416,7 @@ export default function HousekeeperPortal() {
                 <div key={item.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800/80 text-xs">
                   <div>
                     <span className="font-semibold text-slate-200">{item.name}</span>
-                    <span className="text-slate-400 ml-2 font-mono">${item.price.toFixed(2)} each</span>
+                    <span className="text-slate-400 ml-2 font-mono">LKR {item.price.toFixed(2)} each</span>
                   </div>
                   <div className="flex items-center gap-2 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
                     <span className="text-slate-400 text-[11px]">Consumed:</span>

@@ -87,7 +87,7 @@ export default function OccupancyReport() {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Average RevPAR</span>
-          <p className="text-3xl font-black text-blue-600 mt-1">${averageRevPar.toFixed(2)}</p>
+          <p className="text-3xl font-black text-blue-600 mt-1">LKR {averageRevPar.toFixed(2)}</p>
           <span className="text-xs text-slate-500 mt-1 block">Revenue per available key</span>
         </div>
 
@@ -166,8 +166,8 @@ export default function OccupancyReport() {
                       <span className="font-bold text-slate-800">{tier.occupancyRate}%</span>
                     </div>
                   </td>
-                  <td className="p-4 text-right font-semibold text-slate-800">${tier.adr.toFixed(2)}</td>
-                  <td className="p-4 text-right font-black text-blue-600 text-sm">${tier.revPar.toFixed(2)}</td>
+                  <td className="p-4 text-right font-semibold text-slate-800">LKR {tier.adr.toFixed(2)}</td>
+                  <td className="p-4 text-right font-black text-blue-600 text-sm">LKR {tier.revPar.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

@@ -284,13 +284,13 @@ export default function MenuManagement() {
                         {item.category}
                       </span>
                     </td>
-                    <td className="p-4 font-medium text-slate-900">${item.basePrice.toFixed(2)}</td>
+                    <td className="p-4 font-medium text-slate-900">LKR {item.basePrice.toFixed(2)}</td>
                     <td className="p-4">
                       {item.variants && item.variants.length > 0 ? (
                         <div className="flex flex-col gap-1">
                           {item.variants.map(v => (
                             <span key={v.id} className="text-xs text-slate-600 bg-white border border-slate-200 px-2 py-1 rounded inline-block w-max">
-                              {v.name}: ${v.price.toFixed(2)}
+                              {v.name}: LKR {v.price.toFixed(2)}
                             </span>
                           ))}
                         </div>
@@ -389,7 +389,7 @@ export default function MenuManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Base Price ($) *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Base Price (LKR) *</label>
                   <input 
                     required
                     type="number" 
@@ -432,7 +432,7 @@ export default function MenuManagement() {
                     <ul className="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
                       {formData.variants.map(v => (
                         <li key={v.id} className="flex justify-between items-center bg-white p-2 border border-slate-200 rounded">
-                          <span className="font-medium text-slate-800">{v.name} <span className="text-slate-500 font-normal">(${v.price.toFixed(2)})</span></span>
+                          <span className="font-medium text-slate-800">{v.name} <span className="text-slate-500 font-normal">(LKR {v.price.toFixed(2)})</span></span>
                           <button 
                             type="button" 
                             onClick={() => handleRemoveVariant(v.id)}

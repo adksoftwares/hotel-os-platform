@@ -28,12 +28,12 @@ interface FolioItem {
 const initialFolios: FolioItem[] = [];
 
 const CURRENCIES = [
-  { code: 'USD', symbol: '$', rate: 1.0, label: 'USD ($)' },
-  { code: 'EUR', symbol: '€', rate: 0.92, label: 'EUR (€)' },
-  { code: 'GBP', symbol: '£', rate: 0.78, label: 'GBP (£)' },
-  { code: 'INR', symbol: '₹', rate: 84.20, label: 'INR (₹)' },
-  { code: 'LKR', symbol: 'Rs ', rate: 302.50, label: 'LKR (Rs)' },
-  { code: 'AED', symbol: 'AED ', rate: 3.67, label: 'AED (د.إ)' },
+  { code: 'LKR', symbol: 'LKR ', rate: 1.0, label: 'LKR (Rs)' },
+  { code: 'USD', symbol: '$', rate: 0.0033, label: 'USD ($)' },
+  { code: 'EUR', symbol: '€', rate: 0.0031, label: 'EUR (€)' },
+  { code: 'GBP', symbol: '£', rate: 0.0026, label: 'GBP (£)' },
+  { code: 'INR', symbol: '₹', rate: 0.28, label: 'INR (₹)' },
+  { code: 'AED', symbol: 'AED ', rate: 0.012, label: 'AED (د.إ)' },
 ];
 
 export default function BillingDashboard() {

@@ -344,7 +344,7 @@ export default function RoomBoardPage() {
                   ) : (
                     <div className="p-2 rounded bg-slate-50 border border-slate-100 text-slate-500 flex items-center justify-between">
                       <span>Rate / Night</span>
-                      <span className="font-semibold text-slate-800">${room.pricePerNight}</span>
+                      <span className="font-semibold text-slate-800">LKR {room.pricePerNight}</span>
                     </div>
                   )}
 
