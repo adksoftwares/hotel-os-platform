@@ -1,15 +1,16 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, NotImplementedException } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator.js';
 
 @Controller('webhooks/booking')
 export class OtaController {
+  @Public()
   @Post()
-  handleBookingWebhook(@Body() payload: any) {
-    // Simulate mapping OTA payload to Reservation
-    return {
-      message: 'Booking webhook received',
-      reservationId: 'RES-12345',
-      source: payload?.source || 'OTA',
-      mappedData: payload
-    };
+  handleBookingWebhook(): never {
+    // Do not acknowledge fabricated bookings. Enable this endpoint only after
+    // a provider adapter, signature verification, replay protection, and
+    // idempotent reservation mapping have been implemented.
+    throw new NotImplementedException(
+      'OTA webhook integration is not configured. No booking was created.'
+    );
   }
 }
