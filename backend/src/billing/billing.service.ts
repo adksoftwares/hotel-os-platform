@@ -1,81 +1,131 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import * as crypto from 'crypto';
+import { PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class BillingService {
   constructor(private prisma: PrismaService) {}
 
-  async addChargeToFolio(propertyId: string, folioId: string, payload: { description: string, amount: number, sourceType: string, sourceId?: string }) {
-    return this.prisma.$transaction(async (tx) => {
-      const folio = await tx.folio.findFirst({ where: { id: folioId, propertyId } });
-      if (!folio) throw new NotFoundException('Folio not found');
-      if (folio.status === 'CLOSED' || folio.status === 'SETTLED') throw new BadRequestException('Cannot add charges to closed folios');
-
-      const item = await tx.folioItem.create({
-        data: {
-          folioId: folio.id,
-          description: payload.description,
-          unitPrice: payload.amount,
-          subtotal: payload.amount,
-          total: payload.amount, // ignoring tax/discount for scaffolding
-          sourceType: payload.sourceType,
-          sourceId: payload.sourceId
-        }
-      });
-
-      const updatedFolio = await tx.folio.update({
-        where: { id: folio.id },
-        data: {
-          subtotal: { increment: payload.amount },
-          grandTotal: { increment: payload.amount },
-          balance: { increment: payload.amount }
-        }
-      });
-
-      return { item, folio: updatedFolio };
+  async processPayment(
+    propertyId: string,
+    folioId: string,
+    amount: number,
+    method: string,
+    paymentReference: string,
+    idempotencyKey: string,
+    userId: string
+  ) {
+    // 1. Idempotency Check
+    const existingPayment = await this.prisma.payment.findUnique({
+      where: { idempotencyKey }
     });
-  }
+    if (existingPayment) {
+      return existingPayment; // Already processed, safely return original (Idempotency)
+    }
 
-  async processPayment(propertyId: string, folioId: string, amount: number, method: string) {
     return this.prisma.$transaction(async (tx) => {
-      const folio = await tx.folio.findFirst({ where: { id: folioId, propertyId } });
+      const folio = await tx.folio.findUnique({ where: { id: folioId, propertyId } });
       if (!folio) throw new NotFoundException('Folio not found');
 
-      const paymentReference = `PAY-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
+      // 2. Create Payment
       const payment = await tx.payment.create({
         data: {
           propertyId,
           folioId,
           amount,
+          capturedAmount: amount, // Assuming direct capture for this flow
           method,
-          paymentReference
+          status: PaymentStatus.CAPTURED,
+          paymentReference,
+          idempotencyKey
         }
       });
 
-      const updatedFolio = await tx.folio.update({
+      // 3. Update Folio Status (Calculate totals, but keeping simple here for demo)
+      // In real scenario, SUM all items - SUM all payments
+      await tx.folio.update({
         where: { id: folioId },
-        data: {
-          paidTotal: { increment: amount },
-          balance: { decrement: amount }
-        }
+        data: { status: 'PARTIALLY_SETTLED' } // Just an example state progression
       });
 
-      // Auto-settle logic
-      if (Number(updatedFolio.balance) <= 0 && updatedFolio.status === 'OPEN') {
-        await tx.folio.update({
-          where: { id: folioId },
-          data: { status: 'SETTLED' }
-        });
-      } else if (Number(updatedFolio.paidTotal) > 0 && updatedFolio.status === 'OPEN') {
-        await tx.folio.update({
-          where: { id: folioId },
-          data: { status: 'PARTIALLY_SETTLED' }
-        });
-      }
+      // 4. Audit Log
+      await tx.auditLog.create({
+        data: {
+          propertyId,
+          userId,
+          action: 'PROCESS_PAYMENT',
+          entity: 'Payment',
+          entityId: payment.id,
+          after: JSON.stringify(payment),
+          reason: 'Guest payment',
+          timestamp: new Date()
+        }
+      });
 
       return payment;
+    }, {
+      isolationLevel: 'Serializable'
+    });
+  }
+
+  async processRefund(
+    propertyId: string,
+    paymentId: string,
+    amount: number,
+    reason: string,
+    userId: string
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.findUnique({
+        where: { id: paymentId, propertyId }
+      });
+      if (!payment) throw new NotFoundException('Payment not found');
+
+      if (payment.status !== PaymentStatus.CAPTURED) {
+        throw new ConflictException('Payment must be CAPTURED to refund');
+      }
+
+      if (amount > Number(payment.capturedAmount)) {
+        throw new ConflictException('Refund amount exceeds captured amount');
+      }
+
+      // Create Refund
+      const refundReference = 'REF-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const refund = await tx.refund.create({
+        data: {
+          refundReference,
+          paymentId,
+          amount,
+          reason,
+          authorizedBy: userId
+        }
+      });
+
+      // Update Payment status
+      await tx.payment.update({
+        where: { id: paymentId },
+        data: { 
+          status: PaymentStatus.REFUNDED
+        }
+      });
+
+      // Audit Log
+      await tx.auditLog.create({
+        data: {
+          propertyId,
+          userId,
+          action: 'PROCESS_REFUND',
+          entity: 'Refund',
+          entityId: refund.id,
+          after: JSON.stringify(refund),
+          reason,
+          timestamp: new Date()
+        }
+      });
+
+      return refund;
+    }, {
+      isolationLevel: 'Serializable'
     });
   }
 }

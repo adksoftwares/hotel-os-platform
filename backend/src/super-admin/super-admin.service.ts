@@ -24,9 +24,9 @@ export class SuperAdminService {
     });
   }
 
-  async terminateSession(sessionId: string, terminatedById: string, terminationReason: string) {
+  async terminateSession(propertyId: string, sessionId: string, terminatedById: string, terminationReason: string) {
     return this.prisma.supportSession.update({
-      where: { id: sessionId },
+      where: { id: sessionId, propertyId },
       data: {
         status: 'TERMINATED',
         terminatedAt: new Date(),
@@ -36,3 +36,4 @@ export class SuperAdminService {
     });
   }
 }
+

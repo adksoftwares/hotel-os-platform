@@ -46,7 +46,8 @@ export class InventoryService {
             locationId_inventoryItemId: {
               locationId,
               inventoryItemId: item.inventoryItemId
-            }
+            },
+            propertyId
           },
           update: {
             quantity: { increment: item.quantity }
@@ -63,4 +64,56 @@ export class InventoryService {
       return receipt;
     });
   }
+
+  async recordStocktake(
+    propertyId: string,
+    locationId: string,
+    inventoryItemId: string,
+    actualQuantity: number,
+    reason: string,
+    userId: string
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const currentStock = await tx.stockBalance.findUnique({
+        where: {
+          locationId_inventoryItemId: { locationId, inventoryItemId },
+          propertyId
+        }
+      });
+      const currentQty = currentStock ? Number(currentStock.quantity) : 0;
+      const variance = actualQuantity - currentQty;
+
+      if (variance !== 0) {
+        await tx.stockMovement.create({
+          data: {
+            propertyId,
+            locationId,
+            inventoryItemId,
+            movementType: 'ADJUSTMENT',
+            quantity: variance,
+            referenceType: 'STOCKTAKE',
+            referenceId: reason || userId
+          }
+        });
+
+        await tx.stockBalance.upsert({
+          where: {
+            locationId_inventoryItemId: { locationId, inventoryItemId },
+            propertyId
+          },
+          update: { quantity: actualQuantity },
+          create: {
+            propertyId,
+            locationId,
+            inventoryItemId,
+            quantity: actualQuantity
+          }
+        });
+      }
+
+      return { inventoryItemId, actualQuantity, variance };
+    });
+  }
 }
+
+

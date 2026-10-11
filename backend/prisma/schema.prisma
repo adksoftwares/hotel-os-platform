@@ -7,64 +7,62 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------
-// 1. PROPERTY & TENANTS
-// ---------------------------------------------------------
 model Property {
-  id           String   @id @default(uuid())
-  name         String
-  propertyCode String   @unique
-  address      String?
-  city         String?
-  country      String?
-  timezone     String   @default("UTC")
-  currency     String   @default("USD")
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-
-  users              User[]
+  id                 String              @id @default(uuid())
+  name               String
+  propertyCode       String              @unique
+  address            String?
+  city               String?
+  country            String?
+  timezone           String              @default("UTC")
+  currency           String              @default("USD")
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  AuditLog           AuditLog[]
   buildings          Building[]
-  roomTypes          RoomType[]
-  rooms              Room[]
-  guests             Guest[]
-  reservations       Reservation[]
-  stays              Stay[]
-  outlets            RestaurantOutlet[]
-  orders             RestaurantOrder[]
-  folios             Folio[]
-  invoices           Invoice[]
-  payments           Payment[]
+  BusinessDate       BusinessDate[]
   expenses           Expense[]
-  suppliers          Supplier[]
-  purchaseOrders     PurchaseOrder[]
+  ExpenseCategory    ExpenseCategory[]
+  folios             Folio[]
+  GoodsReceipt       GoodsReceipt[]
+  guests             Guest[]
   inventoryItems     InventoryItem[]
   inventoryLocations InventoryLocation[]
-  stockMovements     StockMovement[]
-  supportSessions    SupportSession[]
+  invoices           Invoice[]
+  KitchenStation     KitchenStation[]
+  ModifierGroup      ModifierGroup[]
   notifications      Notification[]
-  GoodsReceipt       GoodsReceipt[]
+  payments           Payment[]
+  purchaseOrders     PurchaseOrder[]
+  reservations       Reservation[]
+  orders             RestaurantOrder[]
+  outlets            RestaurantOutlet[]
+  rooms              Room[]
+  roomTypes          RoomType[]
+  stays              Stay[]
   StockBalance       StockBalance[]
+  stockMovements     StockMovement[]
+  suppliers          Supplier[]
+  supportSessions    SupportSession[]
+  TaxConfig          TaxConfig[]
+  users              User[]
+  MaintenanceIssue   MaintenanceIssue[]
 }
 
-// ---------------------------------------------------------
-// 2. USERS, ROLES, SUPPORT & AUTH
-// ---------------------------------------------------------
 model User {
-  id           String   @id @default(uuid())
-  propertyId   String?
-  email        String   @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  role         String // e.g., SUPER_ADMIN, MANAGER, CASHIER, HOUSEKEEPING
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-
-  property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
+  id                 String           @id @default(uuid())
+  propertyId         String?
+  email              String           @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  role               String
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  notifications      Notification[]
   initiatedSessions  SupportSession[] @relation("SupportInitiator")
   terminatedSessions SupportSession[] @relation("SupportTerminator")
-  notifications      Notification[]
+  property           Property?        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 }
 
 model SupportSession {
@@ -74,48 +72,49 @@ model SupportSession {
   initiatedById     String
   reason            String
   scope             String    @default("READ_ONLY")
-  status            String    @default("ACTIVE") // ACTIVE, TERMINATED, EXPIRED
+  status            String    @default("ACTIVE")
   startedAt         DateTime  @default(now())
   expiresAt         DateTime
   terminatedAt      DateTime?
   terminatedById    String?
   terminationReason String?
-
-  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  initiatedBy  User     @relation("SupportInitiator", fields: [initiatedById], references: [id], onDelete: Cascade)
-  terminatedBy User?    @relation("SupportTerminator", fields: [terminatedById], references: [id])
+  initiatedBy       User      @relation("SupportInitiator", fields: [initiatedById], references: [id], onDelete: Cascade)
+  property          Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  terminatedBy      User?     @relation("SupportTerminator", fields: [terminatedById], references: [id])
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  action    String
-  entity    String
-  entityId  String
-  userId    String
-  metadata  Json?
-  timestamp DateTime @default(now())
+  id         String   @id @default(uuid())
+  propertyId String
+  userId     String
+  action     String
+  entity     String
+  entityId   String
+  before     Json?
+  after      Json?
+  reason     String?
+  ip         String?
+  timestamp  DateTime @default(now())
+  Property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  @@index([propertyId])
 }
 
 model Notification {
   id              String    @id @default(uuid())
   propertyId      String
   recipientId     String?
-  type            String // OPERATIONAL, FINANCIAL, INVENTORY, SECURITY, SYSTEM
-  priority        String    @default("INFORMATIONAL") // INFORMATIONAL, ATTENTION, IMPORTANT, CRITICAL
+  type            String
+  priority        String    @default("INFORMATIONAL")
   title           String
   message         String
   relatedResource String?
   isRead          Boolean   @default(false)
   createdAt       DateTime  @default(now())
   expiresAt       DateTime?
-
-  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  recipient User?    @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  property        Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  recipient       User?     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
 }
 
-// ---------------------------------------------------------
-// 3. HOTEL OPERATIONS (Rooms, Housekeeping)
-// ---------------------------------------------------------
 model Building {
   id          String   @id @default(uuid())
   propertyId  String
@@ -140,120 +139,114 @@ model RoomType {
   name         String
   basePrice    Decimal       @db.Decimal(10, 2)
   capacity     Int           @default(2)
-  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  rooms        Room[]
   reservations Reservation[]
+  rooms        Room[]
+  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 }
 
 model Room {
-  id                 String  @id @default(uuid())
+  id                 String                 @id @default(uuid())
   propertyId         String
   roomTypeId         String
   floorId            String?
   roomNumber         String
   description        String?
-  capacityAdults     Int     @default(2)
-  capacityChildren   Int     @default(0)
+  capacityAdults     Int                    @default(2)
+  capacityChildren   Int                    @default(0)
   beds               Json?
   amenities          Json?
   images             Json?
-  occupancyStatus    String  @default("VACANT") // VACANT, OCCUPIED, RESERVED
-  operationalStatus  String  @default("AVAILABLE") // AVAILABLE, OUT_OF_ORDER, OUT_OF_SERVICE
-  housekeepingStatus String  @default("CLEAN") // CLEAN, DIRTY, INSPECTION, CLEANING
-
-  property          Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  roomType          RoomType             @relation(fields: [roomTypeId], references: [id])
-  floor             Floor?               @relation(fields: [floorId], references: [id])
-  stays             Stay[]
-  assignments       StayRoomAssignment[]
-  housekeepingTasks HousekeepingTask[]
-  conditions        RoomCondition[]
+  occupancyStatus    RoomOccupancyStatus    @default(VACANT)
+  operationalStatus  RoomOperationalStatus  @default(AVAILABLE)
+  housekeepingStatus RoomHousekeepingStatus @default(CLEAN)
+  housekeepingTasks  HousekeepingTask[]
+  floor              Floor?                 @relation(fields: [floorId], references: [id])
+  property           Property               @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomType           RoomType               @relation(fields: [roomTypeId], references: [id])
+  conditions         RoomCondition[]
+  stays              Stay[]
+  assignments        StayRoomAssignment[]
+  MaintenanceIssue   MaintenanceIssue[]
 }
 
 model RoomCondition {
   id          String    @id @default(uuid())
   roomId      String
-  type        String    // MAINTENANCE, DAMAGE, INSPECTION_NOTE
+  type        String
   description String
-  status      String    @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  status      String    @default("OPEN")
   reportedAt  DateTime  @default(now())
   resolvedAt  DateTime?
-
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 model HousekeepingTask {
   id             String    @id @default(uuid())
   roomId         String
-  taskType       String    // CLEANING, INSPECTION, MAINTENANCE
-  status         String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
-  priority       String    @default("MEDIUM") // LOW, MEDIUM, HIGH
+  taskType       String
+  status         String    @default("PENDING")
+  priority       String    @default("MEDIUM")
   notes          String?
   workflowStatus String?
   assignedTo     String?
   createdAt      DateTime  @default(now())
   completedAt    DateTime?
-
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room           Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
-// ---------------------------------------------------------
-// 4. FRONT DESK (Guests, Reservations, Stays)
-// ---------------------------------------------------------
 model Guest {
-  id             String   @id @default(uuid())
+  id             String        @id @default(uuid())
   propertyId     String
   firstName      String
   lastName       String
   email          String?
   phone          String?
   identification String?
-  createdAt      DateTime @default(now())
-
-  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  reservations Reservation[]
-  stays        Stay[]
-  folios       Folio[]
+  createdAt      DateTime      @default(now())
+  folios         Folio[]
+  property       Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reservations   Reservation[]
+  stays          Stay[]
 }
 
 model Reservation {
-  id               String   @id @default(uuid())
+  id               String            @id @default(uuid())
   propertyId       String
   guestId          String
   roomTypeId       String
-  adults           Int      @default(1)
-  children         Int      @default(0)
+  adults           Int               @default(1)
+  children         Int               @default(0)
   notes            String?
   expectedCheckIn  DateTime
   expectedCheckOut DateTime
-  status           String   @default("CONFIRMED") // PENDING, CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  guest    Guest    @relation(fields: [guestId], references: [id])
-  roomType RoomType @relation(fields: [roomTypeId], references: [id])
-  stays    Stay[]
+  status           ReservationStatus @default(CONFIRMED)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  guest            Guest             @relation(fields: [guestId], references: [id])
+  property         Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  roomType         RoomType          @relation(fields: [roomTypeId], references: [id])
+  stays            Stay[]
+  @@index([propertyId])
+  @@index([propertyId, createdAt])
 }
 
 model Stay {
-  id               String    @id @default(uuid())
+  id               String               @id @default(uuid())
   propertyId       String
   reservationId    String
   guestId          String
   roomId           String
-  folioId          String    @unique
-  status           String    @default("ACTIVE") // ACTIVE, COMPLETED
+  folioId          String               @unique
+  status           String               @default("ACTIVE")
   actualCheckInAt  DateTime
   actualCheckOutAt DateTime?
-
-  property    Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  reservation Reservation          @relation(fields: [reservationId], references: [id])
-  guest       Guest                @relation(fields: [guestId], references: [id])
-  room        Room                 @relation(fields: [roomId], references: [id])
-  folio       Folio                @relation("FolioToStay", fields: [folioId], references: [id])
-  assignments StayRoomAssignment[]
-  orders      RestaurantOrder[]
+  orders           RestaurantOrder[]
+  folio            Folio                @relation("FolioToStay", fields: [folioId], references: [id])
+  guest            Guest                @relation(fields: [guestId], references: [id])
+  property         Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reservation      Reservation          @relation(fields: [reservationId], references: [id])
+  room             Room                 @relation(fields: [roomId], references: [id])
+  assignments      StayRoomAssignment[]
 }
 
 model StayRoomAssignment {
@@ -262,204 +255,195 @@ model StayRoomAssignment {
   roomId       String
   assignedAt   DateTime  @default(now())
   unassignedAt DateTime?
-
-  stay Stay @relation(fields: [stayId], references: [id], onDelete: Cascade)
-  room Room @relation(fields: [roomId], references: [id])
+  room         Room      @relation(fields: [roomId], references: [id])
+  stay         Stay      @relation(fields: [stayId], references: [id], onDelete: Cascade)
 }
 
-// ---------------------------------------------------------
-// 5. RESTAURANT & POS (Menus, Orders, KOTs)
-// ---------------------------------------------------------
 model RestaurantOutlet {
-  id         String  @id @default(uuid())
+  id         String            @id @default(uuid())
   propertyId String
   name       String
-  isActive   Boolean @default(true)
-
-  property   Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  tables     RestaurantTable[]
+  isActive   Boolean           @default(true)
   categories MenuCategory[]
   items      MenuItem[]
   orders     RestaurantOrder[]
+  property   Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tables     RestaurantTable[]
 }
 
 model RestaurantTable {
-  id          String @id @default(uuid())
+  id          String            @id @default(uuid())
   propertyId  String
   outletId    String
   tableNumber String
-  status      String @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED, OUT_OF_SERVICE
-
-  outlet RestaurantOutlet  @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  orders RestaurantOrder[]
+  status      String            @default("AVAILABLE")
+  orders      RestaurantOrder[]
+  outlet      RestaurantOutlet  @relation(fields: [outletId], references: [id], onDelete: Cascade)
 }
 
 model MenuCategory {
-  id       String @id @default(uuid())
+  id       String           @id @default(uuid())
   outletId String
   name     String
-
-  outlet RestaurantOutlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  items  MenuItem[]
+  outlet   RestaurantOutlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  items    MenuItem[]
 }
 
 model MenuItem {
-  id               String  @id @default(uuid())
+  id               String                  @id @default(uuid())
   propertyId       String
   outletId         String
   categoryId       String?
   name             String
   code             String?
   description      String?
-  price            Decimal @db.Decimal(10, 2)
+  price            Decimal                 @db.Decimal(10, 2)
   images           Json?
-  foodAvailability String  @default("AVAILABLE")
-  unitOfMeasure    String? @default("PORTION")
+  foodAvailability String                  @default("AVAILABLE")
+  unitOfMeasure    String?                 @default("PORTION")
   kitchenStationId String?
-  isActive         Boolean @default(true)
-
-  outlet         RestaurantOutlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  category       MenuCategory?           @relation(fields: [categoryId], references: [id])
-  orderItems     OrderItem[]
-  recipeItems    RecipeItem[]
-  modifierGroups MenuItemModifierGroup[]
+  isActive         Boolean                 @default(true)
+  category         MenuCategory?           @relation(fields: [categoryId], references: [id])
+  outlet           RestaurantOutlet        @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  modifierGroups   MenuItemModifierGroup[]
+  orderItems       OrderItem[]
+  recipeItems      RecipeItem[]
 }
 
 model ModifierGroup {
-  id        String @id @default(uuid())
-  name      String
-  minSelect Int    @default(0)
-  maxSelect Int    @default(1)
-
-  options   ModifierOption[]
-  menuItems MenuItemModifierGroup[]
+  id         String                  @id @default(uuid())
+  propertyId String
+  name       String
+  minSelect  Int                     @default(0)
+  maxSelect  Int                     @default(1)
+  menuItems  MenuItemModifierGroup[]
+  Property   Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  options    ModifierOption[]
 }
 
 model ModifierOption {
-  id      String  @id @default(uuid())
-  groupId String
-  name    String
-  price   Decimal @default(0) @db.Decimal(10, 2)
-
+  id                 String              @id @default(uuid())
+  groupId            String
+  name               String
+  price              Decimal             @default(0) @db.Decimal(10, 2)
   group              ModifierGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   orderItemModifiers OrderItemModifier[]
 }
 
 model MenuItemModifierGroup {
-  id              String @id @default(uuid())
+  id              String        @id @default(uuid())
   menuItemId      String
   modifierGroupId String
-
-  menuItem      MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  modifierGroup ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
 }
 
 model RestaurantOrder {
-  id                 String   @id @default(uuid())
+  id                 String                @id @default(uuid())
   propertyId         String
   outletId           String
   tableId            String?
   stayId             String?
-  serviceType        String // DINE_IN, ROOM_SERVICE, TAKEAWAY
-  status             String   @default("DRAFT") // DRAFT, PLACED, PREPARING, SERVED, COMPLETED, CANCELLED
-  subtotal           Decimal  @default(0) @db.Decimal(10, 2)
-  discountTotal      Decimal  @default(0) @db.Decimal(10, 2)
+  serviceType        String
+  status             RestaurantOrderStatus @default(DRAFT)
+  subtotal           Decimal               @default(0) @db.Decimal(10, 2)
+  discountTotal      Decimal               @default(0) @db.Decimal(10, 2)
   discountType       String?
   discountReason     String?
   discountApprovedBy String?
-  tax                Decimal  @default(0) @db.Decimal(10, 2)
-  grandTotal         Decimal  @default(0) @db.Decimal(10, 2)
-  createdAt          DateTime @default(now())
-
-  property Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  outlet   RestaurantOutlet @relation(fields: [outletId], references: [id])
-  table    RestaurantTable? @relation(fields: [tableId], references: [id])
-  stay     Stay?            @relation(fields: [stayId], references: [id])
-  items    OrderItem[]
-  kots     KOT[]
+  tax                Decimal               @default(0) @db.Decimal(10, 2)
+  grandTotal         Decimal               @default(0) @db.Decimal(10, 2)
+  createdAt          DateTime              @default(now())
+  kots               KOT[]
+  items              OrderItem[]
+  outlet             RestaurantOutlet      @relation(fields: [outletId], references: [id])
+  property           Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  stay               Stay?                 @relation(fields: [stayId], references: [id])
+  table              RestaurantTable?      @relation(fields: [tableId], references: [id])
+  @@index([propertyId])
+  @@index([propertyId, createdAt])
 }
 
 model OrderItem {
-  id               String  @id @default(uuid())
+  id               String              @id @default(uuid())
   orderId          String
   menuItemId       String
   kotId            String?
-  quantity         Decimal @db.Decimal(10, 2)
-  unitPrice        Decimal @db.Decimal(10, 2)
-  discountAmount   Decimal @default(0) @db.Decimal(10, 2)
+  quantity         Decimal             @db.Decimal(10, 2)
+  unitPrice        Decimal             @db.Decimal(10, 2)
+  discountAmount   Decimal             @default(0) @db.Decimal(10, 2)
   discountType     String?
   discountReason   String?
-  subtotal         Decimal @default(0) @db.Decimal(10, 2)
-  total            Decimal @default(0) @db.Decimal(10, 2)
+  subtotal         Decimal             @default(0) @db.Decimal(10, 2)
+  total            Decimal             @default(0) @db.Decimal(10, 2)
   notes            String?
   itemNameSnapshot String
-  status           String  @default("NEW") // NEW, PREPARING, READY, SERVED, CANCELLED
-
-  order     RestaurantOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItem  MenuItem            @relation(fields: [menuItemId], references: [id])
-  kot       KOT?                @relation(fields: [kotId], references: [id])
-  modifiers OrderItemModifier[]
+  status           String              @default("NEW")
+  kot              KOT?                @relation(fields: [kotId], references: [id])
+  menuItem         MenuItem            @relation(fields: [menuItemId], references: [id])
+  order            RestaurantOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  modifiers        OrderItemModifier[]
 }
 
 model OrderItemModifier {
-  id               String  @id @default(uuid())
+  id               String         @id @default(uuid())
   orderItemId      String
   modifierOptionId String
-  priceSnapshot    Decimal @db.Decimal(10, 2)
-
-  orderItem      OrderItem      @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  modifierOption ModifierOption @relation(fields: [modifierOptionId], references: [id])
+  priceSnapshot    Decimal        @db.Decimal(10, 2)
+  modifierOption   ModifierOption @relation(fields: [modifierOptionId], references: [id])
+  orderItem        OrderItem      @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 }
 
 model KitchenStation {
-  id   String @id @default(uuid())
-  name String
-  kots KOT[]
+  id         String   @id @default(uuid())
+  propertyId String
+  name       String
+  kots       KOT[]
+  Property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 }
 
 model KOT {
-  id               String   @id @default(uuid())
+  id               String          @id @default(uuid())
   orderId          String
   kitchenStationId String
-  status           String   @default("PENDING") // PENDING, PREPARING, READY, CANCELLED
-  createdAt        DateTime @default(now())
-
-  order   RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  station KitchenStation  @relation(fields: [kitchenStationId], references: [id])
-  items   OrderItem[]
+  status           KOTStatus       @default(PENDING)
+  createdAt        DateTime        @default(now())
+  station          KitchenStation  @relation(fields: [kitchenStationId], references: [id])
+  order            RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items            OrderItem[]
 }
 
-// ---------------------------------------------------------
-// 6. FINANCE (Folios, Invoices, Payments, Expenses)
-// ---------------------------------------------------------
 model Folio {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   propertyId    String
-  folioNumber   String   @unique
+  masterFolioId String?
+  folioNumber   String      @unique
   guestId       String?
-  stayId        String?  @unique // Used for inverse relation access
-  status        String   @default("OPEN") // OPEN, CLOSED, VOID, SETTLED, PARTIALLY_SETTLED
-  currency      String   @default("USD")
-  subtotal      Decimal  @default(0) @db.Decimal(10, 2)
-  discountTotal Decimal  @default(0) @db.Decimal(10, 2)
-  taxTotal      Decimal  @default(0) @db.Decimal(10, 2)
-  grandTotal    Decimal  @default(0) @db.Decimal(10, 2)
-  paidTotal     Decimal  @default(0) @db.Decimal(10, 2)
-  balance       Decimal  @default(0) @db.Decimal(10, 2)
-  openedAt      DateTime @default(now())
-
-  property Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  guest    Guest?      @relation(fields: [guestId], references: [id])
-  stay     Stay?       @relation("FolioToStay")
-  items    FolioItem[]
-  invoices Invoice[]
-  payments Payment[]
+  stayId        String?     @unique
+  status        FolioStatus @default(OPEN)
+  currency      String      @default("USD")
+  subtotal      Decimal     @default(0) @db.Decimal(10, 2)
+  discountTotal Decimal     @default(0) @db.Decimal(10, 2)
+  taxTotal      Decimal     @default(0) @db.Decimal(10, 2)
+  grandTotal    Decimal     @default(0) @db.Decimal(10, 2)
+  paidTotal     Decimal     @default(0) @db.Decimal(10, 2)
+  balance       Decimal     @default(0) @db.Decimal(10, 2)
+  openedAt      DateTime    @default(now())
+  guest         Guest?      @relation(fields: [guestId], references: [id])
+  Folio         Folio?      @relation("FolioToFolio", fields: [masterFolioId], references: [id])
+  other_Folio   Folio[]     @relation("FolioToFolio")
+  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  items         FolioItem[]
+  invoices      Invoice[]
+  payments      Payment[]
+  stay          Stay?       @relation("FolioToStay")
+  @@index([propertyId])
 }
 
 model FolioItem {
   id          String   @id @default(uuid())
   folioId     String
-  sourceType  String // ROOM_CHARGE, RESTAURANT, ROOM_SERVICE, SPA, MISC
+  sourceType  String
   sourceId    String?
   description String
   quantity    Int      @default(1)
@@ -470,8 +454,7 @@ model FolioItem {
   total       Decimal  @db.Decimal(10, 2)
   currency    String   @default("USD")
   createdAt   DateTime @default(now())
-
-  folio Folio @relation(fields: [folioId], references: [id], onDelete: Cascade)
+  folio       Folio    @relation(fields: [folioId], references: [id], onDelete: Cascade)
 }
 
 model Invoice {
@@ -479,194 +462,291 @@ model Invoice {
   propertyId    String
   invoiceNumber String    @unique
   folioId       String
-  status        String    @default("DRAFT") // DRAFT, ISSUED, PAID, VOID
+  status        String    @default("DRAFT")
   issueDate     DateTime?
   dueDate       DateTime?
   subtotal      Decimal   @db.Decimal(10, 2)
   taxTotal      Decimal   @default(0) @db.Decimal(10, 2)
   grandTotal    Decimal   @db.Decimal(10, 2)
   balance       Decimal   @db.Decimal(10, 2)
-
-  property Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  folio    Folio     @relation(fields: [folioId], references: [id])
-  payments Payment[]
+  folio         Folio     @relation(fields: [folioId], references: [id])
+  property      Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  payments      Payment[]
 }
 
 model Payment {
-  id               String   @id @default(uuid())
+  id               String        @id @default(uuid())
   propertyId       String
-  paymentReference String   @unique
+  paymentReference String        @unique
+  idempotencyKey   String?       @unique
   folioId          String
   invoiceId        String?
-  amount           Decimal  @db.Decimal(10, 2)
-  currency         String   @default("USD")
-  method           String // CASH, CARD, BANK, ONLINE
-  status           String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, REFUNDED
-  receivedAt       DateTime @default(now())
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  folio    Folio    @relation(fields: [folioId], references: [id])
-  invoice  Invoice? @relation(fields: [invoiceId], references: [id])
-  refunds  Refund[]
+  amount           Decimal       @db.Decimal(10, 2)
+  capturedAmount   Decimal       @default(0) @db.Decimal(10, 2)
+  currency         String        @default("USD")
+  method           String
+  status           PaymentStatus @default(CAPTURED)
+  receivedAt       DateTime      @default(now())
+  folio            Folio         @relation(fields: [folioId], references: [id])
+  invoice          Invoice?      @relation(fields: [invoiceId], references: [id])
+  property         Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  refunds          Refund[]
+  @@index([propertyId])
 }
 
 model Refund {
-  id              String  @id @default(uuid())
-  refundReference String  @unique
+  id              String   @id @default(uuid())
+  refundReference String   @unique
   paymentId       String
-  amount          Decimal @db.Decimal(10, 2)
+  amount          Decimal  @db.Decimal(10, 2)
   reason          String?
-
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  authorizedBy    String?
+  timestamp       DateTime @default(now())
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 }
 
 model ExpenseCategory {
-  id       String    @id @default(uuid())
-  name     String
-  expenses Expense[]
+  id         String    @id @default(uuid())
+  propertyId String
+  name       String
+  expenses   Expense[]
+  Property   Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 }
 
 model Expense {
-  id            String   @id @default(uuid())
+  id            String          @id @default(uuid())
   propertyId    String
   categoryId    String
-  expenseNumber String   @unique
+  expenseNumber String          @unique
   vendor        String?
   expenseDate   DateTime
-  amount        Decimal  @db.Decimal(10, 2)
-  status        String   @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, PAID
-
-  property Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+  amount        Decimal         @db.Decimal(10, 2)
+  status        String          @default("PENDING_APPROVAL")
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id])
+  property      Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 }
 
-// ---------------------------------------------------------
-// 7. INVENTORY (Purchasing, Stock, Consumption)
-// ---------------------------------------------------------
 model Supplier {
   id             String          @id @default(uuid())
   propertyId     String
   name           String
-  property       Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   purchaseOrders PurchaseOrder[]
+  property       Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 }
 
 model PurchaseOrder {
-  id         String   @id @default(uuid())
+  id         String              @id @default(uuid())
   propertyId String
   supplierId String
-  poNumber   String   @unique
-  status     String   @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, RECEIVED, CANCELLED
-  createdAt  DateTime @default(now())
-
-  property Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  supplier Supplier            @relation(fields: [supplierId], references: [id])
-  items    PurchaseOrderItem[]
-  receipts GoodsReceipt[]
+  poNumber   String              @unique
+  status     String              @default("DRAFT")
+  createdAt  DateTime            @default(now())
+  receipts   GoodsReceipt[]
+  property   Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  items      PurchaseOrderItem[]
 }
 
 model PurchaseOrderItem {
-  id              String  @id @default(uuid())
+  id              String        @id @default(uuid())
   purchaseOrderId String
   inventoryItemId String
-  quantity        Decimal @db.Decimal(10, 2)
-  unitPrice       Decimal @db.Decimal(10, 2)
-
-  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  item          InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity        Decimal       @db.Decimal(10, 2)
+  unitPrice       Decimal       @db.Decimal(10, 2)
+  item            InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 }
 
 model GoodsReceipt {
-  id              String   @id @default(uuid())
+  id              String             @id @default(uuid())
   propertyId      String
   purchaseOrderId String?
-  receiptNumber   String   @unique
-  receivedAt      DateTime @default(now())
-
-  property      Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  purchaseOrder PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id])
-  items         GoodsReceiptItem[]
+  receiptNumber   String             @unique
+  receivedAt      DateTime           @default(now())
+  property        Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  purchaseOrder   PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id])
+  items           GoodsReceiptItem[]
 }
 
 model GoodsReceiptItem {
-  id              String  @id @default(uuid())
+  id              String            @id @default(uuid())
   goodsReceiptId  String
   inventoryItemId String
-  quantity        Decimal @db.Decimal(10, 2)
-  unitCost        Decimal @db.Decimal(10, 2)
+  quantity        Decimal           @db.Decimal(10, 2)
+  unitCost        Decimal           @db.Decimal(10, 2)
   locationId      String
-
-  goodsReceipt GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
-  item         InventoryItem     @relation(fields: [inventoryItemId], references: [id])
-  location     InventoryLocation @relation(fields: [locationId], references: [id])
+  goodsReceipt    GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  item            InventoryItem     @relation(fields: [inventoryItemId], references: [id])
+  location        InventoryLocation @relation(fields: [locationId], references: [id])
 }
 
 model InventoryLocation {
-  id         String @id @default(uuid())
-  propertyId String
-  name       String
-  type       String // MAIN_STORE, KITCHEN, BAR, HOUSEKEEPING
-
+  id           String             @id @default(uuid())
+  propertyId   String
+  name         String
+  type         String
+  receiptItems GoodsReceiptItem[]
   property     Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   balances     StockBalance[]
   movements    StockMovement[]
-  receiptItems GoodsReceiptItem[]
 }
 
 model InventoryItem {
-  id            String  @id @default(uuid())
+  id            String              @id @default(uuid())
   propertyId    String
   name          String
-  sku           String  @unique
-  unitOfMeasure String // KG, LITER, PIECE
-  reorderLevel  Decimal @default(0) @db.Decimal(10, 2)
-
+  sku           String              @unique
+  unitOfMeasure String
+  reorderLevel  Decimal             @default(0) @db.Decimal(10, 2)
+  receiptItems  GoodsReceiptItem[]
   property      Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  purchaseItems PurchaseOrderItem[]
+  recipeItems   RecipeItem[]
   balances      StockBalance[]
   movements     StockMovement[]
-  recipeItems   RecipeItem[]
-  purchaseItems PurchaseOrderItem[]
-  receiptItems  GoodsReceiptItem[]
 }
 
 model StockBalance {
-  id              String  @id @default(uuid())
+  id              String            @id @default(uuid())
   propertyId      String
   locationId      String
   inventoryItemId String
-  quantity        Decimal @default(0) @db.Decimal(10, 2)
-
-  property Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  location InventoryLocation @relation(fields: [locationId], references: [id])
-  item     InventoryItem     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  quantity        Decimal           @default(0) @db.Decimal(10, 2)
+  item            InventoryItem     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  location        InventoryLocation @relation(fields: [locationId], references: [id])
+  property        Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@unique([locationId, inventoryItemId])
 }
 
 model StockMovement {
-  id              String   @id @default(uuid())
+  id              String            @id @default(uuid())
   propertyId      String
   locationId      String
   inventoryItemId String
-  movementType    String // PURCHASE_RECEIPT, TRANSFER_IN, TRANSFER_OUT, CONSUMPTION, WASTE, ADJUSTMENT
-  quantity        Decimal  @db.Decimal(10, 2)
-  referenceType   String? // GOODS_RECEIPT, RestaurantOrder, MANUAL_ADJUSTMENT
+  movementType    String
+  quantity        Decimal           @db.Decimal(10, 2)
+  referenceType   String?
   referenceId     String?
-  createdAt       DateTime @default(now())
-
-  property Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  location InventoryLocation @relation(fields: [locationId], references: [id])
-  item     InventoryItem     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now())
+  item            InventoryItem     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  location        InventoryLocation @relation(fields: [locationId], references: [id])
+  property        Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  @@index([propertyId])
+  @@index([propertyId, createdAt])
 }
 
 model RecipeItem {
-  id              String  @id @default(uuid())
+  id              String        @id @default(uuid())
   menuItemId      String
   inventoryItemId String
-  quantity        Decimal @db.Decimal(10, 4)
-
-  menuItem MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  item     InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  quantity        Decimal       @db.Decimal(10, 4)
+  item            InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
 
   @@unique([menuItemId, inventoryItemId])
+}
+
+model BusinessDate {
+  id         String    @id
+  propertyId String
+  date       DateTime
+  status     String
+  openedAt   DateTime
+  closedAt   DateTime?
+  Property   Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model TaxConfig {
+  id          String   @id
+  propertyId  String
+  name        String
+  rate        Decimal  @db.Decimal(10, 2)
+  isInclusive Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  Property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+enum FolioStatus {
+  OPEN
+  PARTIALLY_SETTLED
+  SETTLED
+  CLOSED
+}
+
+enum KOTStatus {
+  PENDING
+  PREPARING
+  READY
+  SERVED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PRE_AUTH
+  CAPTURED
+  REFUNDED
+  VOIDED
+  FAILED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+}
+
+enum RestaurantOrderStatus {
+  DRAFT
+  PLACED
+  PREPARING
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum RoomHousekeepingStatus {
+  DIRTY
+  CLEANING
+  CLEAN
+  INSPECTED
+  READY
+}
+
+enum RoomOccupancyStatus {
+  VACANT
+  OCCUPIED
+  RESERVED
+}
+
+enum RoomOperationalStatus {
+  AVAILABLE
+  MAINTENANCE
+  OUT_OF_SERVICE
+  BLOCKED
+}
+
+model MaintenanceIssue {
+  id            String    @id @default(uuid())
+  propertyId    String
+  roomId        String
+  issue         String
+  priority      String    @default("NORMAL") // LOW, NORMAL, HIGH, CRITICAL
+  status        String    @default("OPEN") // OPEN, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED
+  assignedTo    String?
+  notes         String?
+  estimatedCost Decimal?  @db.Decimal(10, 2)
+  actualCost    Decimal?  @db.Decimal(10, 2)
+  createdBy     String
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  room     Room     @relation(fields: [roomId], references: [id])
 }

@@ -6,11 +6,12 @@ import { Printer, Download, Receipt } from 'lucide-react';
 
 interface ReceiptModalProps {
   invoice: any;
-  user: any;
+  user?: any;
   onClose: () => void;
+  isOpen?: boolean;
 }
 
-export function ReceiptModal({ invoice, user, onClose }: ReceiptModalProps) {
+export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClose }: ReceiptModalProps) {
   const [paperSize, setPaperSize] = useState<'80mm' | '58mm'>('80mm');
   const [dynamicHeightMm, setDynamicHeightMm] = useState<number | 'auto'>('auto');
   const receiptRef = useRef<HTMLDivElement>(null);

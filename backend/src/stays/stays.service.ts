@@ -55,24 +55,24 @@ export class StaysService {
 
       // 6. Update Folio with Inverse Relation
       await tx.folio.update({
-        where: { id: folio.id },
+        where: { id: folio.id, propertyId },
         data: { stayId: stay.id }
       });
 
       // 7. Update Reservation & Room Status
       await tx.reservation.update({
-        where: { id: reservationId },
+        where: { id: reservationId, propertyId },
         data: { status: 'CHECKED_IN' }
       });
       await tx.room.update({
-        where: { id: roomId },
+        where: { id: roomId, propertyId },
         data: { occupancyStatus: 'OCCUPIED' }
       });
 
       // 8. Audit Log
       await tx.auditLog.create({
         data: {
-          action: 'GUEST_CHECK_IN',
+          propertyId, action: 'GUEST_CHECK_IN',
           entity: 'Stay',
           entityId: stay.id,
           userId: staffId,
@@ -96,13 +96,13 @@ export class StaysService {
 
       // Complete stay
       const completedStay = await tx.stay.update({
-        where: { id: stayId },
+        where: { id: stayId, propertyId },
         data: { status: 'COMPLETED', actualCheckOutAt: new Date() }
       });
 
       // Update room to vacant/dirty
       await tx.room.update({
-        where: { id: stay.roomId },
+        where: { id: stay.roomId, propertyId },
         data: { occupancyStatus: 'VACANT', housekeepingStatus: 'DIRTY' }
       });
       
@@ -121,7 +121,7 @@ export class StaysService {
       // Audit Log
       await tx.auditLog.create({
         data: {
-          action: 'GUEST_CHECK_OUT',
+          propertyId, action: 'GUEST_CHECK_OUT',
           entity: 'Stay',
           entityId: stayId,
           userId: staffId,
@@ -133,3 +133,6 @@ export class StaysService {
     });
   }
 }
+
+
+
