@@ -92,6 +92,7 @@ model AuditLog {
   entityId   String
   before     Json?
   after      Json?
+  metadata   Json?
   reason     String?
   ip         String?
   timestamp  DateTime @default(now())
@@ -165,6 +166,7 @@ model Room {
   roomType           RoomType               @relation(fields: [roomTypeId], references: [id])
   conditions         RoomCondition[]
   stays              Stay[]
+  reservations       Reservation[]
   assignments        StayRoomAssignment[]
   MaintenanceIssue   MaintenanceIssue[]
 }
@@ -214,6 +216,7 @@ model Reservation {
   propertyId       String
   guestId          String
   roomTypeId       String
+  roomId           String?
   adults           Int               @default(1)
   children         Int               @default(0)
   notes            String?
@@ -225,9 +228,11 @@ model Reservation {
   guest            Guest             @relation(fields: [guestId], references: [id])
   property         Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   roomType         RoomType          @relation(fields: [roomTypeId], references: [id])
+  room             Room?             @relation(fields: [roomId], references: [id])
   stays            Stay[]
   @@index([propertyId])
   @@index([propertyId, createdAt])
+  @@index([roomId])
 }
 
 model Stay {

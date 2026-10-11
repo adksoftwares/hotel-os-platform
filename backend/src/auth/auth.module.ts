@@ -2,9 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtModule } from '@nestjs/jwt';
-
 import { ConfigModule, ConfigService } from '@nestjs/config';
-
 import { JwtStrategy } from './jwt.strategy.js';
 
 @Module({
@@ -12,10 +10,16 @@ import { JwtStrategy } from './jwt.strategy.js';
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '12h' },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.getOrThrow<string>('JWT_SECRET');
+        if (secret.trim().length < 32) {
+          throw new Error('JWT_SECRET must contain at least 32 non-whitespace characters');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '12h' },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

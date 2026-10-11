@@ -1,18 +1,17 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
-    container_name: hotel_management_db
     environment:
-      POSTGRES_USER: hotel_admin
-      POSTGRES_PASSWORD: secret_password
-      POSTGRES_DB: hotel_db
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in the root .env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in the root .env file}
+    # Keep PostgreSQL bound to loopback for local development. Use private
+    # networking and managed secrets for production deployments.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    restart: always
+    restart: unless-stopped
 
 volumes:
   pgdata:

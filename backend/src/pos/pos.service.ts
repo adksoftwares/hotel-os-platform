@@ -49,9 +49,14 @@ export class PosService {
       let newSubtotal = 0;
       let newDiscountTotal = 0;
       const kotsToCreate: Record<string, any[]> = {}; // Group by kitchenStationId
+      let kitchenLocationId: string | undefined;
 
       // 1. Process New Items & Deduct Inventory
       for (const item of items) {
+        if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+          throw new BadRequestException('Item quantity must be a positive integer');
+        }
+
         // Fetch menu item WITH recipe
         const menuItem = await tx.menuItem.findUnique({ 
           where: { id: item.menuItemId, propertyId },
@@ -97,45 +102,54 @@ export class PosService {
         newSubtotal += itemSubtotal;
         newDiscountTotal += discountAmount;
 
-        // Challenge #34: Inventory Deduction based on Recipe inside the same transaction
+        // Deduct ingredients from the one explicitly configured KITCHEN location.
+        // Never use a fake location ID or a read-then-write stock check, which can oversell.
         if (menuItem.recipeItems && menuItem.recipeItems.length > 0) {
+          if (!kitchenLocationId) {
+            const kitchenLocations = await tx.inventoryLocation.findMany({
+              where: { propertyId, type: 'KITCHEN' },
+              select: { id: true },
+              take: 2
+            });
+            if (kitchenLocations.length !== 1) {
+              throw new BadRequestException(
+                'Configure exactly one inventory location with type KITCHEN for this property'
+              );
+            }
+            kitchenLocationId = kitchenLocations[0].id;
+          }
+
           for (const recipe of menuItem.recipeItems) {
             const consumptionQty = Number(recipe.quantity) * item.quantity;
-
-            const currentStock = await tx.stockBalance.findFirst({
-              where: { 
-                propertyId, 
-                inventoryItemId: recipe.inventoryItemId,
-                locationId: 'MAIN_KITCHEN_LOCATION' // Hardcoded for structural demo
-              }
-            });
-
-            if (!currentStock || Number(currentStock.quantity) < consumptionQty) {
-              throw new BadRequestException('Insufficient ingredients');
+            if (!Number.isFinite(consumptionQty) || consumptionQty <= 0) {
+              throw new BadRequestException('Recipe ingredient quantity is invalid');
             }
 
-            // Log stock movement
+            // Conditional decrement is atomic: concurrent orders cannot both
+            // consume the same last units of stock.
+            const decrement = await tx.stockBalance.updateMany({
+              where: {
+                propertyId,
+                inventoryItemId: recipe.inventoryItemId,
+                locationId: kitchenLocationId,
+                quantity: { gte: consumptionQty }
+              },
+              data: { quantity: { decrement: consumptionQty } }
+            });
+
+            if (decrement.count !== 1) {
+              throw new BadRequestException('Insufficient ingredients in the configured kitchen stock');
+            }
+
             await tx.stockMovement.create({
               data: {
                 propertyId,
-                locationId: 'MAIN_KITCHEN_LOCATION', // In real app, this should be dynamically mapped
+                locationId: kitchenLocationId,
                 inventoryItemId: recipe.inventoryItemId,
                 movementType: 'CONSUMPTION',
                 quantity: -consumptionQty,
                 referenceType: 'RestaurantOrder',
                 referenceId: order.id
-              }
-            });
-
-            // Decrease StockBalance
-            await tx.stockBalance.updateMany({
-              where: { 
-                propertyId, 
-                inventoryItemId: recipe.inventoryItemId,
-                locationId: 'MAIN_KITCHEN_LOCATION' // Hardcoded for structural demo
-              },
-              data: {
-                quantity: { decrement: consumptionQty }
               }
             });
           }

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -11,35 +11,18 @@ export class AuthService {
   ) {}
 
   async login(email: string, pass: string) {
-    let user: any = null;
-    try {
-      user = await this.prisma.user.findUnique({ where: { email } });
-    } catch (e) {
-      if (email === 'admin@hotel.com') {
-        user = {
-          id: 'admin-super-id-001',
-          email: 'admin@hotel.com',
-          firstName: 'Super',
-          lastName: 'Admin',
-          role: 'SUPER_ADMIN',
-          propertyId: 'ADK001',
-          isActive: true,
-          passwordHash: null,
-        };
-      }
-    }
+    // Authentication must fail closed. Never synthesize an administrator when
+    // the database is unavailable, and never accept a built-in demo password.
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    let isMatch = false;
-    if (user.passwordHash) {
-      isMatch = await bcrypt.compare(pass, user.passwordHash).catch(() => false);
-    } else if (email === 'admin@hotel.com' && pass === 'admin123') {
-      isMatch = true;
-    }
-
+    const isMatch = await bcrypt.compare(pass, user.passwordHash).catch(() => false);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }

@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ReservationStatus } from '@prisma/client';
 
@@ -14,8 +14,22 @@ export class ReservationsService {
     expectedCheckOut: Date,
     roomId?: string,
     adults = 1,
-    children = 0
+    children = 0,
+    userId = 'SYSTEM'
   ) {
+    if (
+      !(expectedCheckIn instanceof Date) ||
+      !(expectedCheckOut instanceof Date) ||
+      Number.isNaN(expectedCheckIn.getTime()) ||
+      Number.isNaN(expectedCheckOut.getTime()) ||
+      expectedCheckOut <= expectedCheckIn
+    ) {
+      throw new BadRequestException('Check-out must be after a valid check-in date');
+    }
+    if (!Number.isInteger(adults) || adults < 1 || !Number.isInteger(children) || children < 0) {
+      throw new BadRequestException('Guest counts are invalid');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       // 1. Verify property & guest
       const guest = await tx.guest.findUnique({ where: { id: guestId, propertyId } });
@@ -90,7 +104,7 @@ export class ReservationsService {
       await tx.auditLog.create({
         data: {
           propertyId,
-          userId: 'SYSTEM', // Assuming system if no user provided, or pass userId
+          userId,
           action: 'CREATE_RESERVATION',
           entity: 'Reservation',
           entityId: reservation.id,
