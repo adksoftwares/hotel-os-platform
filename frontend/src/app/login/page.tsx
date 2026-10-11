@@ -72,11 +72,12 @@ export default function Login() {
           )}
 
           <div className="hotel-field">
-            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+            <label htmlFor="email" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-slate-400" />
               <span>Email Address</span>
             </label>
             <input
+              id="email"
               type="email"
               autoComplete="username"
               value={email}
@@ -88,11 +89,12 @@ export default function Login() {
           </div>
 
           <div className="hotel-field">
-            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+            <label htmlFor="password" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-slate-400" />
               <span>Security Password</span>
             </label>
             <input
+              id="password"
               type="password"
               autoComplete="current-password"
               value={password}
