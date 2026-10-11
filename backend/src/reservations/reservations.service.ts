@@ -104,7 +104,7 @@ export class ReservationsService {
       await tx.auditLog.create({
         data: {
           propertyId,
-          userId
+          userId,
           action: 'CREATE_RESERVATION',
           entity: 'Reservation',
           entityId: reservation.id,
