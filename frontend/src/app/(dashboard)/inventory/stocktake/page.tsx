@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, ArrowRight, Package, AlertCircle, X, Layers, Sparkles } from "lucide-react";
 
 interface InventoryItem {
   id: string;
@@ -19,8 +21,12 @@ const initialItems: InventoryItem[] = [
 ];
 
 export default function StocktakePage() {
+  const router = useRouter();
   const [items, setItems] = useState<InventoryItem[]>(initialItems);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [adjustedSummary, setAdjustedSummary] = useState({ count: 0, time: '' });
 
   const handleQuantityChange = (id: string, value: string) => {
     if (value === "") {
@@ -33,14 +39,17 @@ export default function StocktakePage() {
   };
 
   const handleSubmit = async () => {
-    const anyFilled = items.some((i) => i.actualQuantity !== null);
-    if (!anyFilled) {
-      alert("Please enter at least one actual quantity before submitting.");
+    const filledItems = items.filter((i) => i.actualQuantity !== null);
+    if (filledItems.length === 0) {
+      setWarningMessage("Please enter at least one actual quantity before submitting adjustments.");
       return;
     }
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    alert("Stocktake adjustments submitted successfully!");
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    setAdjustedSummary({
+      count: filledItems.length,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    });
     setItems((prev) =>
       prev.map((item) => ({
         ...item,
@@ -49,6 +58,7 @@ export default function StocktakePage() {
       }))
     );
     setSubmitting(false);
+    setShowSuccessModal(true);
   };
 
   const calculateVariance = (system: number, actual: number | null) => {
@@ -119,6 +129,122 @@ export default function StocktakePage() {
           </div>
         )}
       </div>
+
+      {/* Warning Popup Modal with Blurred Background */}
+      {warningMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
+            onClick={() => setWarningMessage(null)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-sm w-full p-6 text-center z-10 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setWarningMessage(null)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4 ring-8 ring-amber-50/80 shadow-sm">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">
+              Quantity Required
+            </h3>
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+              {warningMessage}
+            </p>
+            <button
+              type="button"
+              onClick={() => setWarningMessage(null)}
+              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs transition-colors"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup Modal with Blurred Background */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-md w-full p-6 sm:p-8 text-center z-10 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4 ring-8 ring-emerald-50/80 shadow-sm">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+
+            <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1">
+              Stocktake Reconciled!
+            </h3>
+            
+            <p className="text-xs text-slate-500 mb-5">
+              Physical inventory count has been verified and system records updated.
+            </p>
+
+            {/* Summary Box */}
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left mb-6 space-y-2.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-medium flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 text-slate-400" />
+                  Adjusted Line Items
+                </span>
+                <span className="font-bold text-slate-800">{adjustedSummary.count} items updated</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-medium flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-slate-400" />
+                  Reconciliation Time
+                </span>
+                <span className="font-semibold text-slate-700">{adjustedSummary.time || 'Just now'}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200/60">
+                <span className="text-slate-500 font-medium flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+                  Inventory Ledger
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md text-[11px] border border-emerald-200/80">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Reconciled • Balances Synced
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={() => router.push('/inventory')}
+                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+              >
+                <span>View Full Inventory Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Continue Stocktake
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
