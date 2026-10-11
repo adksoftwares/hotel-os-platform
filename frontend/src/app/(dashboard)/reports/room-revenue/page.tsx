@@ -20,13 +20,7 @@ interface RevenueRecord {
   total: number;
 }
 
-const revenueData: RevenueRecord[] = [
-  { id: 1, date: '2026-10-11', room: '201', type: 'Deluxe King', reservationId: 'RES-8921', guest: 'Dr. Alexander Wright', rate: 200.00, charges: 75.00, total: 275.00 },
-  { id: 2, date: '2026-10-11', room: '101', type: 'Standard Queen', reservationId: 'RES-8922', guest: 'Elena Rostova', rate: 140.00, charges: 40.00, total: 180.00 },
-  { id: 3, date: '2026-10-10', room: '401', type: 'Presidential Suite', reservationId: 'RES-8925', guest: 'Ambassador Pierre Dubois', rate: 700.00, charges: 220.00, total: 920.00 },
-  { id: 4, date: '2026-10-10', room: '301', type: 'Executive Suite', reservationId: 'RES-8923', guest: 'Marcus Chen', rate: 320.00, charges: 65.00, total: 385.00 },
-  { id: 5, date: '2026-10-09', room: '103', type: 'Standard Queen', reservationId: 'RES-8924', guest: 'Sophie Van Der Bilt', rate: 140.00, charges: 15.00, total: 155.00 },
-];
+const revenueData: RevenueRecord[] = [];
 
 const dailyTrend = [
   { day: 'Oct 05', amount: 1420 },
@@ -49,8 +43,8 @@ export default function RoomRevenueReport() {
   const totalRoomRevenue = revenueData.reduce((acc, curr) => acc + curr.rate, 0);
   const totalAncillary = revenueData.reduce((acc, curr) => acc + curr.charges, 0);
   const grandTotal = totalRoomRevenue + totalAncillary;
-  const adr = totalRoomRevenue / revenueData.length;
-  const maxTrend = Math.max(...dailyTrend.map(t => t.amount));
+  const adr = revenueData.length > 0 ? totalRoomRevenue / revenueData.length : 0;
+  const maxTrend = Math.max(...dailyTrend.map(t => t.amount), 1);
 
   const exportCSV = () => {
     const headers = 'ID,Date,Room,Type,ReservationId,Guest,RoomRate,AncillaryCharges,Total\n';
@@ -209,7 +203,14 @@ export default function RoomRevenueReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {revenueData.map((row) => (
+              {revenueData.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                    No itemized revenue records found for this period.
+                  </td>
+                </tr>
+              ) : (
+                revenueData.map((row) => (
                 <React.Fragment key={row.id}>
                   <tr className="hover:bg-slate-50/60 transition-colors">
                     <td className="p-4 font-mono text-slate-600">{row.date}</td>
@@ -257,7 +258,8 @@ export default function RoomRevenueReport() {
                     </tr>
                   )}
                 </React.Fragment>
-              ))}
+              ))
+            )}
             </tbody>
           </table>
         </div>

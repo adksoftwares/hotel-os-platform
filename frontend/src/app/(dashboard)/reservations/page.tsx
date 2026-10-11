@@ -35,81 +35,7 @@ const mockRooms = [
   { number: '401', type: 'Presidential Suite', housekeeping: 'INSPECTED', floor: '4th Floor' },
 ];
 
-const initialReservations: Reservation[] = [
-  {
-    id: 'RES-8921',
-    guestName: 'Dr. Alexander Wright',
-    email: 'a.wright@med.org',
-    phone: '+1 415 892 1102',
-    roomNumber: '201',
-    roomType: 'Deluxe King',
-    checkIn: '2026-10-11',
-    checkOut: '2026-10-14',
-    nights: 3,
-    status: 'CHECKED_IN',
-    totalAmount: 675.00,
-    paidAmount: 675.00,
-    vip: true,
-  },
-  {
-    id: 'RES-8922',
-    guestName: 'Elena Rostova',
-    email: 'elena.rostova@tech.io',
-    phone: '+44 20 7946 0912',
-    roomNumber: '101',
-    roomType: 'Standard Queen',
-    checkIn: '2026-10-11',
-    checkOut: '2026-10-13',
-    nights: 2,
-    status: 'CHECKED_IN',
-    totalAmount: 320.00,
-    paidAmount: 150.00,
-  },
-  {
-    id: 'RES-8923',
-    guestName: 'Marcus Chen',
-    email: 'marcus.chen@capital.hk',
-    phone: '+852 9123 4567',
-    roomNumber: '301',
-    roomType: 'Executive Suite',
-    checkIn: '2026-10-12',
-    checkOut: '2026-10-16',
-    nights: 4,
-    status: 'CONFIRMED',
-    totalAmount: 1400.00,
-    paidAmount: 500.00,
-    vip: true,
-  },
-  {
-    id: 'RES-8924',
-    guestName: 'Sophie Van Der Bilt',
-    email: 'sophie.vdb@amsterdam.nl',
-    phone: '+31 6 1234 5678',
-    roomNumber: '103',
-    roomType: 'Standard Queen',
-    checkIn: '2026-10-13',
-    checkOut: '2026-10-17',
-    nights: 4,
-    status: 'CONFIRMED',
-    totalAmount: 640.00,
-    paidAmount: 200.00,
-  },
-  {
-    id: 'RES-8925',
-    guestName: 'Ambassador Pierre Dubois',
-    email: 'p.dubois@diplomacy.fr',
-    phone: '+33 1 4268 5500',
-    roomNumber: '401',
-    roomType: 'Presidential Suite',
-    checkIn: '2026-10-11',
-    checkOut: '2026-10-15',
-    nights: 4,
-    status: 'CHECKED_IN',
-    totalAmount: 3200.00,
-    paidAmount: 3200.00,
-    vip: true,
-  },
-];
+const initialReservations: Reservation[] = [];
 
 export default function ReservationsPage() {
   const { toast } = useToast();
@@ -478,9 +404,16 @@ export default function ReservationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredReservations.map((res) => (
-                  <tr key={res.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 font-mono font-bold text-slate-800">
+                {filteredReservations.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-400">
+                      No reservations found. Click "+ New Booking Reservation" to create a guest reservation.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredReservations.map((res) => (
+                    <tr key={res.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-4 font-mono font-bold text-slate-800">
                       {res.id}
                       {res.vip && (
                         <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700 font-bold">
@@ -524,7 +457,8 @@ export default function ReservationsPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                ))
+              )}
               </tbody>
             </table>
           </div>

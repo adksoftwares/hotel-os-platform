@@ -52,14 +52,14 @@ interface TableEntity {
 
 const initialTables: TableEntity[] = [
   { id: 'T1', name: 'Table 1', zone: 'AC Dining', capacity: 2, status: 'AVAILABLE', currentTotal: 0 },
-  { id: 'T2', name: 'Table 2', zone: 'AC Dining', capacity: 4, status: 'OCCUPIED', currentTotal: 78.50, seatedMinutes: 35, guestCount: 3 },
-  { id: 'T3', name: 'Table 3', zone: 'AC Dining', capacity: 4, status: 'BILLED', currentTotal: 142.00, seatedMinutes: 52, guestCount: 4 },
-  { id: 'T4', name: 'Table 4', zone: 'AC Dining', capacity: 6, status: 'OCCUPIED', currentTotal: 215.00, seatedMinutes: 20, guestCount: 5 },
+  { id: 'T2', name: 'Table 2', zone: 'AC Dining', capacity: 4, status: 'AVAILABLE', currentTotal: 0 },
+  { id: 'T3', name: 'Table 3', zone: 'AC Dining', capacity: 4, status: 'AVAILABLE', currentTotal: 0 },
+  { id: 'T4', name: 'Table 4', zone: 'AC Dining', capacity: 6, status: 'AVAILABLE', currentTotal: 0 },
   { id: 'G1', name: 'Patio 1', zone: 'Garden Patio', capacity: 4, status: 'AVAILABLE', currentTotal: 0 },
-  { id: 'G2', name: 'Patio 2', zone: 'Garden Patio', capacity: 4, status: 'OCCUPIED', currentTotal: 64.00, seatedMinutes: 15, guestCount: 2 },
-  { id: 'G3', name: 'Patio 3', zone: 'Garden Patio', capacity: 8, status: 'RESERVED', currentTotal: 0 },
+  { id: 'G2', name: 'Patio 2', zone: 'Garden Patio', capacity: 4, status: 'AVAILABLE', currentTotal: 0 },
+  { id: 'G3', name: 'Patio 3', zone: 'Garden Patio', capacity: 8, status: 'AVAILABLE', currentTotal: 0 },
   { id: 'R1', name: 'Roof 1', zone: 'Rooftop', capacity: 2, status: 'AVAILABLE', currentTotal: 0 },
-  { id: 'R2', name: 'Roof 2', zone: 'Rooftop', capacity: 4, status: 'OCCUPIED', currentTotal: 110.00, seatedMinutes: 40, guestCount: 2 },
+  { id: 'R2', name: 'Roof 2', zone: 'Rooftop', capacity: 4, status: 'AVAILABLE', currentTotal: 0 },
 ];
 
 export default function RestaurantPOS() {
@@ -803,10 +803,10 @@ export default function RestaurantPOS() {
               onChange={(e) => setSelectedRoomNumber(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
             >
-              <option value="101">Room 101 - Dr. Alexander Wright (Deluxe King)</option>
-              <option value="102">Room 102 - Elena Rostova (Standard Queen)</option>
-              <option value="201">Room 201 - Sarah Jenkins (Executive Suite)</option>
-              <option value="401">Room 401 - Ambassador Pierre Dubois (Presidential)</option>
+              <option value="101">Room 101 (Deluxe King)</option>
+              <option value="102">Room 102 (Standard Queen)</option>
+              <option value="201">Room 201 (Executive Suite)</option>
+              <option value="401">Room 401 (Presidential Penthouse)</option>
             </select>
           </div>
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 flex justify-between font-bold">

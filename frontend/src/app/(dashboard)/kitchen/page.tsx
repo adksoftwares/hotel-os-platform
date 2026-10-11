@@ -24,57 +24,7 @@ interface KOT {
   urgent?: boolean;
 }
 
-const initialMockKots: KOT[] = [
-  {
-    id: 'KOT-8491',
-    table: 'Table 4',
-    server: 'Rajesh K.',
-    time: '12:42 PM',
-    timestamp: Date.now() - 22 * 60 * 1000, // 22 mins ago (Rush)
-    status: 'PREPARING',
-    urgent: true,
-    items: [
-      { name: 'Steak Frites (Medium-Rare)', qty: 2, notes: 'Truffle butter on side' },
-      { name: 'Caesar Salad', qty: 1, notes: 'No croutons (gluten-free)' },
-      { name: 'Craft Cola', qty: 2 }
-    ]
-  },
-  {
-    id: 'KOT-8492',
-    table: 'Table 2',
-    server: 'Elena V.',
-    time: '12:54 PM',
-    timestamp: Date.now() - 11 * 60 * 1000, // 11 mins ago (Warning)
-    status: 'PENDING',
-    items: [
-      { name: 'Wagyu Burger (Well Done)', qty: 1 },
-      { name: 'Truffle Fries', qty: 2, notes: 'Extra parmesan cheese' }
-    ]
-  },
-  {
-    id: 'KOT-8493',
-    table: 'Patio 2',
-    server: 'Admin',
-    time: '01:02 PM',
-    timestamp: Date.now() - 4 * 60 * 1000, // 4 mins ago (Normal)
-    status: 'PENDING',
-    items: [
-      { name: 'Margherita Pizza', qty: 1, notes: 'Crispy thin crust' },
-      { name: 'Bruschetta', qty: 1 }
-    ]
-  },
-  {
-    id: 'KOT-8490',
-    table: 'Roof 2',
-    server: 'Marcus',
-    time: '12:35 PM',
-    timestamp: Date.now() - 30 * 60 * 1000,
-    status: 'READY',
-    items: [
-      { name: 'Cheesecake', qty: 2, notes: 'Berry compote' }
-    ]
-  }
-];
+const initialMockKots: KOT[] = [];
 
 export default function KitchenDisplaySystem() {
   const { toast } = useToast();

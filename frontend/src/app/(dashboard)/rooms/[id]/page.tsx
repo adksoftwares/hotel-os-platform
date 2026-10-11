@@ -73,9 +73,8 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Current Guest</h3>
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="font-medium text-gray-900">John Doe (RES-10293)</p>
-                <p className="text-sm text-gray-500 mt-1">Check-in: Oct 1, 2026 &bull; Check-out: Oct 5, 2026</p>
-                <p className="text-sm text-gray-500">2 Adults &bull; Standard Rate</p>
+                <p className="font-medium text-gray-600">No active guest checked in</p>
+                <p className="text-xs text-gray-400 mt-1">Room is vacant and ready for assignment</p>
               </div>
             </div>
             <div>
@@ -99,32 +98,7 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
         {activeTab === 'reservations' && (
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Reservation History</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3">Res ID</th>
-                    <th className="px-4 py-3">Guest</th>
-                    <th className="px-4 py-3">Dates</th>
-                    <th className="px-4 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  <tr>
-                    <td className="px-4 py-3 text-blue-600">RES-10293</td>
-                    <td className="px-4 py-3">John Doe</td>
-                    <td className="px-4 py-3">Oct 1 - Oct 5, 2026</td>
-                    <td className="px-4 py-3"><span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">In House</span></td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 text-blue-600">RES-10250</td>
-                    <td className="px-4 py-3">Jane Smith</td>
-                    <td className="px-4 py-3">Sep 25 - Sep 28, 2026</td>
-                    <td className="px-4 py-3"><span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Checked Out</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <p className="text-gray-500 italic">No prior reservation history on record for this room.</p>
           </div>
         )}
 

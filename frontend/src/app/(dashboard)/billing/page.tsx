@@ -25,76 +25,7 @@ interface FolioItem {
   charges: { date: string; description: string; amount: number }[];
 }
 
-const initialFolios: FolioItem[] = [
-  { 
-    id: 'FOL-8921', 
-    guest: 'Dr. Alexander Wright', 
-    room: '201', 
-    roomType: 'Deluxe King',
-    checkIn: '2026-10-11',
-    checkOut: '2026-10-14',
-    nights: 3,
-    status: 'SETTLED', 
-    balance: 0.00,
-    totalCharges: 675.00,
-    paidAmount: 675.00,
-    charges: [
-      { date: '2026-10-11', description: 'Room Stay (3 Nights @ $200.00/night)', amount: 600.00 },
-      { date: '2026-10-11', description: 'Restaurant Dining - Steak Frites & Wine', amount: 75.00 },
-    ]
-  },
-  { 
-    id: 'FOL-8922', 
-    guest: 'Elena Rostova', 
-    room: '101', 
-    roomType: 'Standard Queen',
-    checkIn: '2026-10-11',
-    checkOut: '2026-10-13',
-    nights: 2,
-    status: 'OPEN', 
-    balance: 170.00,
-    totalCharges: 320.00,
-    paidAmount: 150.00,
-    charges: [
-      { date: '2026-10-11', description: 'Room Stay (2 Nights @ $140.00/night)', amount: 280.00 },
-      { date: '2026-10-11', description: 'Minibar Consumption - Snacks & Drinks', amount: 40.00 },
-    ]
-  },
-  { 
-    id: 'FOL-8923', 
-    guest: 'Marcus Chen', 
-    room: '301', 
-    roomType: 'Executive Suite',
-    checkIn: '2026-10-12',
-    checkOut: '2026-10-16',
-    nights: 4,
-    status: 'OPEN', 
-    balance: 900.00,
-    totalCharges: 1400.00,
-    paidAmount: 500.00,
-    charges: [
-      { date: '2026-10-12', description: 'Room Stay (4 Nights @ $320.00/night)', amount: 1280.00 },
-      { date: '2026-10-12', description: 'Airport Limousine Chauffeur Service', amount: 120.00 },
-    ]
-  },
-  { 
-    id: 'FOL-8925', 
-    guest: 'Ambassador Pierre Dubois', 
-    room: '401', 
-    roomType: 'Presidential Suite',
-    checkIn: '2026-10-11',
-    checkOut: '2026-10-15',
-    nights: 4,
-    status: 'SETTLED', 
-    balance: 0.00,
-    totalCharges: 3200.00,
-    paidAmount: 3200.00,
-    charges: [
-      { date: '2026-10-11', description: 'Presidential Suite Stay (4 Nights)', amount: 2800.00 },
-      { date: '2026-10-11', description: 'Private Dining & In-Room Banqueting', amount: 400.00 },
-    ]
-  },
-];
+const initialFolios: FolioItem[] = [];
 
 const CURRENCIES = [
   { code: 'USD', symbol: '$', rate: 1.0, label: 'USD ($)' },
@@ -108,7 +39,7 @@ const CURRENCIES = [
 export default function BillingDashboard() {
   const { toast } = useToast();
   const [folios, setFolios] = useState<FolioItem[]>(initialFolios);
-  const [selectedFolio, setSelectedFolio] = useState<FolioItem | null>(initialFolios[1]);
+  const [selectedFolio, setSelectedFolio] = useState<FolioItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Multi-Currency & Shift Close State
@@ -290,11 +221,18 @@ export default function BillingDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredFolios.map((folio) => {
-                    const isSelected = selectedFolio?.id === folio.id;
+                  {filteredFolios.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                        No active billing folios found. Click "+ Create Master Folio" to open a guest folio.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredFolios.map((folio) => {
+                      const isSelected = selectedFolio?.id === folio.id;
 
-                    return (
-                      <tr 
+                      return (
+                        <tr 
                         key={folio.id} 
                         onClick={() => setSelectedFolio(folio)}
                         className={`cursor-pointer transition-colors ${
@@ -336,7 +274,8 @@ export default function BillingDashboard() {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                )}
                 </tbody>
               </table>
             </div>

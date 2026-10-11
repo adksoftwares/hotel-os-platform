@@ -78,11 +78,7 @@ export default function WaiterHandheldPOS() {
   }, []);
 
   // Active Ticket
-  const [currentTicket, setCurrentTicket] = useState<WaiterOrderItem[]>([
-    { ...MENU_CATALOG[1], qty: 2, course: 'STARTER', notes: 'Dressing on side' },
-    { ...MENU_CATALOG[0], qty: 2, course: 'MAIN', notes: 'Medium-rare', hold: true },
-    { ...MENU_CATALOG[3], qty: 2, course: 'BEVERAGE', notes: 'No ice' },
-  ]);
+  const [currentTicket, setCurrentTicket] = useState<WaiterOrderItem[]>([]);
 
   // Audio tone helper
   const playChime = () => {

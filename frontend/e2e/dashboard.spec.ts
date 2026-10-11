@@ -27,8 +27,10 @@ test.describe('Live Operational Command Center (Dashboard)', () => {
   });
 
   test('navigates to room board when clicking Open Room Board link', async ({ page }) => {
-    await page.getByRole('link', { name: /Open Room Board/i }).click();
-    await expect(page).toHaveURL(/\/rooms/);
+    await Promise.all([
+      page.waitForURL(/\/rooms/),
+      page.getByRole('link', { name: /Open Room Board/i }).click(),
+    ]);
     await expect(page.getByRole('heading', { name: 'Operational Room Board' })).toBeVisible();
   });
 });

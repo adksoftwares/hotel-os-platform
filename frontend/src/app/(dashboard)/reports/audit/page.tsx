@@ -15,10 +15,7 @@ type AuditLog = {
   }
 };
 
-const mockLogs: AuditLog[] = [
-  { id: '1', user: 'Admin', action: 'UPDATE', entity: 'Reservation', timestamp: '2023-10-10T10:00:00Z', details: { before: { status: 'PENDING' }, after: { status: 'CONFIRMED' } } },
-  { id: '2', user: 'System', action: 'CREATE', entity: 'Invoice', timestamp: '2023-10-10T11:30:00Z', details: { before: null, after: { amount: 150.00 } } }
-];
+const mockLogs: AuditLog[] = [];
 
 export default function AuditLogViewer() {
   const [logs, setLogs] = useState<AuditLog[]>([]);

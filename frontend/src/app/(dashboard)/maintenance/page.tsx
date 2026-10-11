@@ -18,13 +18,7 @@ interface MaintenanceIssue {
   reportedAt: string;
 }
 
-const mockIssues: MaintenanceIssue[] = [
-  { id: "1", roomNumber: "101", issue: "Bathroom sink faucet leaking slightly", priority: "MEDIUM", status: "OPEN", reportedAt: "Today 10:15 AM" },
-  { id: "2", roomNumber: "205", issue: "HVAC cooling unit cycling off prematurely", priority: "HIGH", status: "IN_PROGRESS", reportedAt: "Today 09:30 AM" },
-  { id: "3", roomNumber: "310", issue: "Broken TV remote battery cover missing", priority: "LOW", status: "OPEN", reportedAt: "Yesterday" },
-  { id: "4", roomNumber: "105", issue: "Main shower hot water pressure low", priority: "CRITICAL", status: "RESOLVED", reportedAt: "Today 08:00 AM" },
-  { id: "5", roomNumber: "402", issue: "Balcony light bulb burnt out", priority: "LOW", status: "CLOSED", reportedAt: "Oct 10" },
-];
+const mockIssues: MaintenanceIssue[] = [];
 
 export default function MaintenanceKanban() {
   const { toast } = useToast();
