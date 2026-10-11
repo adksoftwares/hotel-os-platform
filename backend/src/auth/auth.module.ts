@@ -2,9 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtModule } from '@nestjs/jwt';
-
 import { ConfigModule, ConfigService } from '@nestjs/config';
-
 import { JwtStrategy } from './jwt.strategy.js';
 
 @Module({
@@ -13,7 +11,7 @@ import { JwtStrategy } from './jwt.strategy.js';
       global: true,
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: { expiresIn: '12h' },
       }),
       inject: [ConfigService],
