@@ -14,7 +14,8 @@ export class ReservationsService {
     expectedCheckOut: Date,
     roomId?: string,
     adults = 1,
-    children = 0
+    children = 0,
+    userId = 'SYSTEM'
   ) {
     if (
       !(expectedCheckIn instanceof Date) ||
@@ -103,7 +104,7 @@ export class ReservationsService {
       await tx.auditLog.create({
         data: {
           propertyId,
-          userId: 'SYSTEM', // Assuming system if no user provided, or pass userId
+          userId
           action: 'CREATE_RESERVATION',
           entity: 'Reservation',
           entityId: reservation.id,
