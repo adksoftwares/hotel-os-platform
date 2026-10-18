@@ -284,10 +284,7 @@ export default function RestaurantPOS() {
   const [tableOrRoom, setTableOrRoom] = useState('Table 1');
   const [customerName, setCustomerName] = useState('');
   
-  const [orderItems, setOrderItems] = useState<any[]>([
-    { id: '5', name: 'Wagyu Burger', category: 'Mains', price: 25.00, qty: 2, discountType: 'none', discountValue: 0 },
-    { id: '3', name: 'Truffle Fries', category: 'Sides', price: 12.00, qty: 1, discountType: 'none', discountValue: 0 },
-  ]);
+  const [orderItems, setOrderItems] = useState<any[]>([]);
 
   // Held Bills (Parked Orders) State
   const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
