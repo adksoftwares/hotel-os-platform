@@ -9,7 +9,8 @@ import {
   Minus, Plus, Edit2, Trash2, LayoutGrid, Coffee, Split, 
   CheckCircle, Clock, Users, ArrowUpRight, DollarSign, Smartphone,
   ChefHat, Sparkles, Sliders, X, Flame, ShieldAlert, Star, Check,
-  ChevronLeft, ChevronRight, List
+  ChevronLeft, ChevronRight, List, PauseCircle, PlayCircle, FilePlus,
+  Printer, Eye, AlertCircle, ShoppingBag, RotateCcw
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -23,6 +24,23 @@ export interface MenuItemEntity {
   dietary?: string;
   station?: string;
   isCustom?: boolean;
+}
+
+export interface HeldBill {
+  id: string;
+  billNumber: string;
+  orderType: 'Table' | 'Room' | 'Takeaway';
+  tableOrRoom: string;
+  customerName?: string;
+  items: any[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  orderDiscount: { type: 'percent' | 'fixed' | 'none'; value: number };
+  grandTotal: number;
+  note?: string;
+  heldAt: string;
+  server?: string;
 }
 
 const defaultMenuItems: MenuItemEntity[] = [
@@ -226,13 +244,42 @@ export default function RestaurantPOS() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [orderType, setOrderType] = useState<'Table' | 'Room'>('Table');
+  const [orderType, setOrderType] = useState<'Table' | 'Room' | 'Takeaway'>('Table');
   const [tableOrRoom, setTableOrRoom] = useState('Table 1');
+  const [customerName, setCustomerName] = useState('');
   
   const [orderItems, setOrderItems] = useState<any[]>([
     { id: '5', name: 'Wagyu Burger', category: 'Mains', price: 25.00, qty: 2, discountType: 'none', discountValue: 0 },
     { id: '3', name: 'Truffle Fries', category: 'Sides', price: 12.00, qty: 1, discountType: 'none', discountValue: 0 },
   ]);
+
+  // Held Bills (Parked Orders) State
+  const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
+  const [isHoldBillModalOpen, setIsHoldBillModalOpen] = useState(false);
+  const [holdBillNote, setHoldBillNote] = useState('');
+  const [showHeldBillsModal, setShowHeldBillsModal] = useState(false);
+  const [previewHeldBill, setPreviewHeldBill] = useState<HeldBill | null>(null);
+  const [showNewBillModal, setShowNewBillModal] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pos_held_bills');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setHeldBills(parsed);
+        }
+      }
+    } catch (_) {}
+  }, []);
+
+  const saveHeldBills = (newHeldBills: HeldBill[]) => {
+    setHeldBills(newHeldBills);
+    try {
+      localStorage.setItem('pos_held_bills', JSON.stringify(newHeldBills));
+      window.dispatchEvent(new Event('pos_held_bills_changed'));
+    } catch (_) {}
+  };
   
   // Modals
   const [modalMessage, setModalMessage] = useState('');
@@ -476,6 +523,11 @@ export default function RestaurantPOS() {
   };
 
   const handleSelectTable = (tbl: TableEntity) => {
+    const matchingHeldBill = heldBills.find(b => b.tableOrRoom.toLowerCase() === tbl.name.toLowerCase());
+    if (matchingHeldBill) {
+      handleResumeHeldBill(matchingHeldBill);
+      return;
+    }
     setTableOrRoom(tbl.name);
     setOrderType('Table');
     setPosMode('menu');
@@ -487,6 +539,132 @@ export default function RestaurantPOS() {
     toast(`Rs. ${grandTotal.toFixed(2)} charged to Room ${selectedRoomNumber} Folio!`, 'success');
     setOrderItems([]);
   };
+
+  // Held Bill & New Bill Handlers
+  const handleHoldBill = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (orderItems.length === 0) {
+      toast("Cannot hold an empty bill! Please add food items first.", 'error');
+      return;
+    }
+
+    const holdId = `HOLD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const billNum = `BILL-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newHeldBill: HeldBill = {
+      id: holdId,
+      billNumber: billNum,
+      orderType,
+      tableOrRoom: tableOrRoom || 'Counter',
+      customerName: customerName.trim() || undefined,
+      items: [...orderItems],
+      subtotal,
+      tax,
+      discount: totalOrderDiscount,
+      orderDiscount: { ...orderDiscount },
+      grandTotal,
+      note: holdBillNote.trim() || `${orderType}: ${tableOrRoom}${customerName ? ` (${customerName})` : ''}`,
+      heldAt: new Date().toISOString(),
+      server: 'Admin Staff'
+    };
+
+    const updated = [newHeldBill, ...heldBills];
+    saveHeldBills(updated);
+
+    // Reset active order to start fresh
+    setOrderItems([]);
+    setOrderDiscount({ type: 'none', value: 0 });
+    setCustomerName('');
+    setIsHoldBillModalOpen(false);
+    setHoldBillNote('');
+
+    toast(`Bill #${holdId} for ${newHeldBill.tableOrRoom} (Rs. ${grandTotal.toFixed(2)}) placed on hold!`, 'success');
+  };
+
+  const handleResumeHeldBill = (bill: HeldBill) => {
+    // If active order has items, auto-park it so zero data is lost!
+    if (orderItems.length > 0) {
+      const autoHoldId = `HOLD-${Math.floor(1000 + Math.random() * 9000)}`;
+      const autoHeldBill: HeldBill = {
+        id: autoHoldId,
+        billNumber: `BILL-${Math.floor(1000 + Math.random() * 9000)}`,
+        orderType,
+        tableOrRoom: tableOrRoom || 'Counter',
+        customerName: customerName.trim() || undefined,
+        items: [...orderItems],
+        subtotal,
+        tax,
+        discount: totalOrderDiscount,
+        orderDiscount: { ...orderDiscount },
+        grandTotal,
+        note: `Swapped for ${bill.id}`,
+        heldAt: new Date().toISOString(),
+        server: 'Admin Staff'
+      };
+      const updatedList = [autoHeldBill, ...heldBills.filter(b => b.id !== bill.id)];
+      saveHeldBills(updatedList);
+      toast(`Current active bill parked as #${autoHoldId}.`, 'info');
+    } else {
+      saveHeldBills(heldBills.filter(b => b.id !== bill.id));
+    }
+
+    // Load held bill into active pad
+    setOrderItems(bill.items);
+    setOrderType(bill.orderType);
+    setTableOrRoom(bill.tableOrRoom);
+    setCustomerName(bill.customerName || '');
+    if (bill.orderDiscount) {
+      setOrderDiscount(bill.orderDiscount);
+    }
+    setShowHeldBillsModal(false);
+    setPosMode('menu'); // switch to order pad
+    toast(`Resumed Bill #${bill.id} (${bill.tableOrRoom} - Rs. ${bill.grandTotal.toFixed(2)})!`, 'success');
+  };
+
+  const handleDeleteHeldBill = (billId: string) => {
+    const updated = heldBills.filter(b => b.id !== billId);
+    saveHeldBills(updated);
+    toast(`Held bill #${billId} has been removed.`, 'info');
+  };
+
+  const handleStartNewBill = () => {
+    if (orderItems.length === 0) {
+      setCustomerName('');
+      toast("Fresh bill ready! Select dishes from the menu catalog.", 'info');
+      return;
+    }
+    setShowNewBillModal(true);
+  };
+
+  const handleConfirmDiscardNewBill = () => {
+    setOrderItems([]);
+    setOrderDiscount({ type: 'none', value: 0 });
+    setCustomerName('');
+    setShowNewBillModal(false);
+    toast("Started a fresh empty bill.", 'info');
+  };
+
+  const handleHoldAndStartNewBill = () => {
+    handleHoldBill();
+    setShowNewBillModal(false);
+  };
+
+  const heldBillInvoice = previewHeldBill ? {
+    invoiceNumber: previewHeldBill.billNumber || previewHeldBill.id,
+    createdAt: previewHeldBill.heldAt,
+    paymentMethod: 'HELD BILL (ESTIMATION)',
+    tableOrRoom: previewHeldBill.tableOrRoom,
+    items: previewHeldBill.items.map((item: any) => ({
+      name: item.name,
+      qty: item.qty,
+      price: item.price,
+      total: calculateItemTotal(item),
+    })),
+    subtotal: previewHeldBill.subtotal,
+    discount: previewHeldBill.discount,
+    tax: previewHeldBill.tax,
+    grandTotal: previewHeldBill.grandTotal,
+  } : null;
 
   return (
     <div className="flex flex-col gap-4 pb-6">
@@ -525,6 +703,23 @@ export default function RestaurantPOS() {
                 {menuItems.length}
               </span>
             </button>
+            <button
+              onClick={() => setShowHeldBillsModal(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                heldBills.length > 0 
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold shadow-2xs hover:bg-amber-200' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="View and resume parked/held bills"
+            >
+              <PauseCircle className="w-3.5 h-3.5 text-amber-600" />
+              <span>Held Bills</span>
+              {heldBills.length > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-600 text-white font-bold animate-pulse">
+                  {heldBills.length}
+                </span>
+              )}
+            </button>
             <Link
               href="/pos/waiter"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-all"
@@ -540,7 +735,9 @@ export default function RestaurantPOS() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
             <span className="text-slate-400">Order For:</span>
-            <span className="font-bold text-slate-800">{orderType} - {tableOrRoom}</span>
+            <span className="font-bold text-slate-800">
+              {orderType} - {tableOrRoom}{customerName ? ` (${customerName})` : ''}
+            </span>
           </div>
 
           {orderItems.length > 0 && (
@@ -788,48 +985,62 @@ export default function RestaurantPOS() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {tables
               .filter(t => activeZone === 'All' || t.zone === activeZone)
-              .map((tbl) => (
-                <div
-                  key={tbl.id}
-                  onClick={() => handleSelectTable(tbl)}
-                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md relative overflow-hidden ${
-                    tbl.status === 'AVAILABLE'
-                      ? 'bg-emerald-50/40 border-emerald-300 hover:border-emerald-500'
-                      : tbl.status === 'OCCUPIED'
-                      ? 'bg-rose-50/40 border-rose-300 hover:border-rose-500'
-                      : tbl.status === 'BILLED'
-                      ? 'bg-amber-50/40 border-amber-300 hover:border-amber-500'
-                      : 'bg-blue-50/40 border-blue-300 hover:border-blue-500'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-bold text-slate-800">{tbl.name}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                      tbl.status === 'AVAILABLE' ? 'bg-emerald-100 text-emerald-800' :
-                      tbl.status === 'OCCUPIED' ? 'bg-rose-100 text-rose-800' :
-                      tbl.status === 'BILLED' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {tbl.status}
-                    </span>
-                  </div>
+              .map((tbl) => {
+                const tblHeld = heldBills.find(b => b.tableOrRoom.toLowerCase() === tbl.name.toLowerCase());
+                return (
+                  <div
+                    key={tbl.id}
+                    onClick={() => handleSelectTable(tbl)}
+                    className={`p-5 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md relative overflow-hidden ${
+                      tblHeld
+                        ? 'bg-amber-50/70 border-amber-400 hover:border-amber-600 ring-2 ring-amber-300/40'
+                        : tbl.status === 'AVAILABLE'
+                        ? 'bg-emerald-50/40 border-emerald-300 hover:border-emerald-500'
+                        : tbl.status === 'OCCUPIED'
+                        ? 'bg-rose-50/40 border-rose-300 hover:border-rose-500'
+                        : tbl.status === 'BILLED'
+                        ? 'bg-amber-50/40 border-amber-300 hover:border-amber-500'
+                        : 'bg-blue-50/40 border-blue-300 hover:border-blue-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-base font-bold text-slate-800">{tbl.name}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        tblHeld ? 'bg-amber-200 text-amber-900 border border-amber-300 font-extrabold' :
+                        tbl.status === 'AVAILABLE' ? 'bg-emerald-100 text-emerald-800' :
+                        tbl.status === 'OCCUPIED' ? 'bg-rose-100 text-rose-800' :
+                        tbl.status === 'BILLED' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {tblHeld ? 'HELD BILL' : tbl.status}
+                      </span>
+                    </div>
 
-                  <p className="text-xs text-slate-400 mt-1">{tbl.zone} · {tbl.capacity} Seats</p>
+                    <p className="text-xs text-slate-400 mt-1">{tbl.zone} · {tbl.capacity} Seats</p>
 
-                  <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs">
-                    {tbl.status === 'OCCUPIED' || tbl.status === 'BILLED' ? (
-                      <>
-                        <div className="flex items-center gap-1 text-slate-500 font-medium">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{tbl.seatedMinutes}m</span>
-                        </div>
-                        <span className="font-bold text-slate-900 text-sm">Rs. {tbl.currentTotal.toFixed(2)}</span>
-                      </>
-                    ) : (
-                      <span className="text-emerald-600 font-medium text-xs">Click to Seat & Order →</span>
-                    )}
+                    <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                      {tblHeld ? (
+                        <>
+                          <div className="flex items-center gap-1 text-amber-700 font-bold">
+                            <PauseCircle className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                            <span>Resume Held →</span>
+                          </div>
+                          <span className="font-extrabold text-amber-900 text-sm">Rs. {tblHeld.grandTotal.toFixed(2)}</span>
+                        </>
+                      ) : tbl.status === 'OCCUPIED' || tbl.status === 'BILLED' ? (
+                        <>
+                          <div className="flex items-center gap-1 text-slate-500 font-medium">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{tbl.seatedMinutes}m</span>
+                          </div>
+                          <span className="font-bold text-slate-900 text-sm">Rs. {tbl.currentTotal.toFixed(2)}</span>
+                        </>
+                      ) : (
+                        <span className="text-emerald-600 font-medium text-xs">Click to Seat & Order →</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         </div>
       ) : (
@@ -972,19 +1183,97 @@ export default function RestaurantPOS() {
           {/* Right Ticket Summary */}
           <div className="flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden min-h-[540px] lg:h-[calc(100vh-14rem)] lg:min-h-[580px]">
             {/* Header */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between shrink-0">
-              <div>
-                <h2 className="font-bold text-slate-800 text-sm">Active Order Ticket</h2>
-                <span className="text-[11px] text-slate-400">{orderType}: {tableOrRoom}</span>
+            <div className="p-3.5 border-b border-slate-100 bg-slate-50/70 space-y-2 shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="font-bold text-slate-800 text-sm">Active Order Ticket</h2>
+                    {orderItems.length > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-md bg-blue-100 text-blue-700 font-bold text-[10px]">
+                        {orderItems.reduce((acc, i) => acc + i.qty, 0)} items
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {heldBills.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowHeldBillsModal(true)}
+                      className="px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer active:scale-95"
+                      title={`${heldBills.length} bills currently on hold`}
+                    >
+                      <PauseCircle className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{heldBills.length} Held</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleStartNewBill}
+                    className="px-2 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] flex items-center gap-1 transition cursor-pointer active:scale-95"
+                    title="Start a fresh new bill"
+                  >
+                    <FilePlus className="w-3.5 h-3.5 text-blue-600" />
+                    <span>+ New Bill</span>
+                  </button>
+                  {orderItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSplitBill(true)}
+                      className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1 transition cursor-pointer"
+                      title="Split bill between guests"
+                    >
+                      <Split className="w-3.5 h-3.5" />
+                      <span>Split</span>
+                    </button>
+                  )}
+                </div>
               </div>
-              {orderItems.length > 0 && (
-                <button
-                  onClick={() => setShowSplitBill(true)}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                >
-                  <Split className="w-3.5 h-3.5" /> Split Bill
-                </button>
-              )}
+
+              {/* Order Destination & Customer Tag */}
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex bg-white rounded-lg border border-slate-200 p-0.5 text-[11px] font-semibold shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('Table')}
+                    className={`px-2 py-0.5 rounded-md transition cursor-pointer ${orderType === 'Table' ? 'bg-slate-800 text-white font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Table
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('Takeaway')}
+                    className={`px-2 py-0.5 rounded-md transition cursor-pointer ${orderType === 'Takeaway' ? 'bg-slate-800 text-white font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Takeaway
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('Room')}
+                    className={`px-2 py-0.5 rounded-md transition cursor-pointer ${orderType === 'Room' ? 'bg-slate-800 text-white font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Room
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder={orderType === 'Table' ? 'Table name/number...' : orderType === 'Room' ? 'Room number...' : 'Customer/Token #...'}
+                  value={tableOrRoom}
+                  onChange={(e) => setTableOrRoom(e.target.value)}
+                  className="flex-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs bg-white font-semibold text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none min-w-0"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Guest name (optional)..."
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-28 sm:w-32 px-2 py-1 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none truncate"
+                  title="Guest or customer name"
+                />
+              </div>
             </div>
 
             {/* Order Items List */}
@@ -1075,19 +1364,34 @@ export default function RestaurantPOS() {
                 <span className="text-blue-600 text-base">Rs. {grandTotal.toFixed(2)}</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2">
+              <div className="grid grid-cols-3 gap-2 pt-2">
                 <button
-                  onClick={handleFireKOT}
-                  className="py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-colors shadow-2xs"
+                  type="button"
+                  onClick={() => {
+                    if (orderItems.length === 0) return toast("Order is empty! Please add menu items to hold bill.", 'error');
+                    setHoldBillNote(`${orderType}: ${tableOrRoom}${customerName ? ` (${customerName})` : ''}`);
+                    setIsHoldBillModalOpen(true);
+                  }}
+                  className="py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Park this bill and serve another customer"
                 >
-                  Fire KOT to Kitchen
+                  <PauseCircle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Hold Bill</span>
                 </button>
                 <button
+                  type="button"
+                  onClick={handleFireKOT}
+                  className="py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-colors shadow-2xs cursor-pointer active:scale-95"
+                >
+                  Fire KOT
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     if (orderItems.length === 0) return toast("Order is empty!", 'error');
                     setShowReceipt(true);
                   }}
-                  className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-2xs"
+                  className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-2xs cursor-pointer active:scale-95"
                 >
                   Settle Payment
                 </button>
@@ -1700,6 +2004,248 @@ export default function RestaurantPOS() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      {/* HOLD ACTIVE BILL MODAL */}
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      <Modal
+        isOpen={isHoldBillModalOpen}
+        onClose={() => setIsHoldBillModalOpen(false)}
+        title="Hold / Park Active Bill"
+      >
+        <form onSubmit={handleHoldBill} className="space-y-4 text-xs">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-amber-950 text-sm">
+                {orderType}: {tableOrRoom}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 uppercase">
+                {orderItems.reduce((acc, i) => acc + i.qty, 0)} Items
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-700 pt-1 border-t border-amber-200/60 font-semibold">
+              <span>Bill Grand Total:</span>
+              <span className="text-base font-extrabold text-blue-700">
+                Rs. {grandTotal.toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Hold Reference / Note (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Waiting for friends, Dessert pending, Guest Rahul..."
+              value={holdBillNote}
+              onChange={(e) => setHoldBillNote(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              This reference helps identify this parked bill when resuming later.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsHoldBillModalOpen(false)}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold text-slate-600 transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <PauseCircle className="w-3.5 h-3.5" />
+              <span>Confirm Hold & Start New Bill</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      {/* PARKED & HELD BILLS LIST MODAL */}
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      <Modal
+        isOpen={showHeldBillsModal}
+        onClose={() => setShowHeldBillsModal(false)}
+        title={`Parked & Held Bills (${heldBills.length})`}
+      >
+        <div className="space-y-4 text-xs">
+          <p className="text-slate-500">
+            Select any parked bill to restore it to the Order Pad, view pro-forma estimation, or discard.
+          </p>
+
+          {heldBills.length === 0 ? (
+            <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-2">
+              <PauseCircle className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="font-semibold text-slate-700 text-sm">No Bills Currently on Hold</p>
+              <p className="text-slate-400 max-w-xs mx-auto text-[11px]">
+                Click the &quot;Hold Bill&quot; button on any active order to park it and serve another customer without losing items.
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-[460px] overflow-y-auto space-y-3 pr-1">
+              {heldBills.map((bill) => (
+                <div
+                  key={bill.id}
+                  className="p-4 rounded-xl border border-slate-200 hover:border-amber-400 bg-white shadow-2xs hover:shadow-xs transition space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-slate-900 text-sm">{bill.tableOrRoom}</span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800">
+                          {bill.orderType}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400">#{bill.id}</span>
+                      </div>
+                      {bill.customerName && (
+                        <p className="text-xs font-semibold text-slate-700 mt-0.5">
+                          Guest: {bill.customerName}
+                        </p>
+                      )}
+                      {bill.note && (
+                        <p className="text-[11px] text-slate-500 italic mt-0.5">
+                          Note: {bill.note}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-base font-extrabold text-blue-700">
+                        Rs. {bill.grandTotal.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-slate-400 flex items-center justify-end gap-1 mt-0.5">
+                        <Clock className="w-3 h-3" />
+                        <span>{new Date(bill.heldAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Items Summary Pill List */}
+                  <div className="p-2 bg-slate-50 rounded-lg border border-slate-100 flex flex-wrap gap-1.5 text-[11px]">
+                    {bill.items.map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium"
+                      >
+                        {item.qty}x {item.name}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewHeldBill(bill)}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1 transition cursor-pointer"
+                      title="View & print pro-forma bill receipt"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Pro-Forma</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHeldBill(bill.id)}
+                        className="px-2.5 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold text-xs flex items-center gap-1 transition cursor-pointer"
+                        title="Discard this parked bill"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Discard</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleResumeHeldBill(bill)}
+                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
+                        title="Load this bill onto Order Pad"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" />
+                        <span>Resume Bill →</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowHeldBillsModal(false)}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold text-slate-600 transition cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      {/* NEW BILL CONFIRMATION MODAL */}
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      <Modal
+        isOpen={showNewBillModal}
+        onClose={() => setShowNewBillModal(false)}
+        title="Start Fresh New Bill"
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-1">
+            <p className="font-bold text-blue-950 text-sm">
+              Active Order Has {orderItems.reduce((acc, i) => acc + i.qty, 0)} Items
+            </p>
+            <p className="text-blue-800">
+              Destination: <span className="font-bold">{orderType} - {tableOrRoom}</span> • Total: <span className="font-bold">Rs. {grandTotal.toFixed(2)}</span>
+            </p>
+          </div>
+
+          <p className="text-slate-600 leading-relaxed">
+            Would you like to put the current bill on hold so you can return to it later, or discard it to start clean?
+          </p>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowNewBillModal(false)}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold text-slate-600 transition cursor-pointer"
+            >
+              Keep Current Bill
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDiscardNewBill}
+              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition cursor-pointer"
+            >
+              Discard & Clear
+            </button>
+            <button
+              type="button"
+              onClick={handleHoldAndStartNewBill}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <PauseCircle className="w-3.5 h-3.5" />
+              <span>Hold First & Start New</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Pro-Forma Receipt Modal for Previewed Held Bill */}
+      {previewHeldBill && heldBillInvoice && (
+        <ReceiptModal
+          isOpen={!!previewHeldBill}
+          onClose={() => setPreviewHeldBill(null)}
+          invoice={heldBillInvoice}
+        />
       )}
     </div>
   );
