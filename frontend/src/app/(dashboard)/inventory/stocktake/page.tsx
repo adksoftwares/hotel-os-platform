@@ -1,39 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ArrowRight, Package, AlertCircle, X, Layers, Sparkles } from "lucide-react";
+import { loadInventoryStock, saveInventoryStock, InventoryItem as RawInventoryItem } from "@/lib/inventoryStorage";
 
-interface InventoryItem {
+interface StocktakeItem {
   id: string;
+  sku: string;
   name: string;
   category: string;
+  unit: string;
   systemQuantity: number;
   actualQuantity: number | null;
 }
 
-const initialItems: InventoryItem[] = [
-  { id: "1", name: "Towels (Standard)", category: "Linens", systemQuantity: 150, actualQuantity: null },
-  { id: "2", name: "Towels (Large)", category: "Linens", systemQuantity: 100, actualQuantity: null },
-  { id: "3", name: "Shampoo (Mini)", category: "Toiletries", systemQuantity: 500, actualQuantity: null },
-  { id: "4", name: "Soap Bars", category: "Toiletries", systemQuantity: 450, actualQuantity: null },
-  { id: "5", name: "Coffee Pods", category: "Beverages", systemQuantity: 300, actualQuantity: null },
-];
-
 export default function StocktakePage() {
   const router = useRouter();
-  const [items, setItems] = useState<InventoryItem[]>(initialItems);
+  const [items, setItems] = useState<StocktakeItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [adjustedSummary, setAdjustedSummary] = useState({ count: 0, time: '' });
+
+  useEffect(() => {
+    const rawStock = loadInventoryStock();
+    const mapped: StocktakeItem[] = rawStock.map(item => ({
+      id: item.sku,
+      sku: item.sku,
+      name: item.name,
+      category: item.category,
+      unit: item.unit,
+      systemQuantity: item.qty,
+      actualQuantity: null,
+    }));
+    setItems(mapped);
+  }, []);
 
   const handleQuantityChange = (id: string, value: string) => {
     if (value === "") {
       setItems((prev) => prev.map((item) => item.id === id ? { ...item, actualQuantity: null } : item));
       return;
     }
-    const numValue = parseInt(value, 10);
+    const numValue = parseFloat(value);
     if (isNaN(numValue) || numValue < 0) return;
     setItems((prev) => prev.map((item) => item.id === id ? { ...item, actualQuantity: numValue } : item));
   };
@@ -45,11 +54,25 @@ export default function StocktakePage() {
       return;
     }
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    // Update the master stock ledger in localStorage
+    const currentStock = loadInventoryStock();
+    const updatedStock = currentStock.map(stockItem => {
+      const match = items.find(i => i.sku === stockItem.sku);
+      if (match && match.actualQuantity !== null) {
+        return { ...stockItem, qty: match.actualQuantity };
+      }
+      return stockItem;
+    });
+
+    saveInventoryStock(updatedStock);
+
     setAdjustedSummary({
       count: filledItems.length,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     });
+
     setItems((prev) =>
       prev.map((item) => ({
         ...item,
@@ -97,25 +120,38 @@ export default function StocktakePage() {
               
               return (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="p-4 text-gray-800">{item.name}</td>
-                  <td className="p-4 text-gray-500">{item.category}</td>
-                  <td className="p-4 text-right text-gray-600">{item.systemQuantity}</td>
+                  <td className="p-4 text-gray-800">
+                    <span className="font-semibold block">{item.name}</span>
+                    <span className="text-xs font-mono text-slate-400">{item.sku}</span>
+                  </td>
+                  <td className="p-4 text-gray-500">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-medium text-slate-700">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right text-gray-700 font-semibold">
+                    {item.systemQuantity} <span className="text-xs text-slate-400 font-normal">{item.unit}</span>
+                  </td>
                   <td className="p-4">
-                    <input
-                      type="number"
-                      min="0"
-                      value={item.actualQuantity === null ? "" : item.actualQuantity}
-                      onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
-                      placeholder="Enter qty"
-                    />
+                    <div className="flex items-center gap-1.5 justify-center">
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={item.actualQuantity === null ? "" : item.actualQuantity}
+                        onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                        className="w-28 border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-sm font-semibold"
+                        placeholder="Count"
+                      />
+                      <span className="text-xs text-slate-400 w-10 text-left">{item.unit}</span>
+                    </div>
                   </td>
                   <td className={`p-4 text-right font-medium ${
                     variance === null ? "text-gray-400" :
-                    variance > 0 ? "text-green-600" :
-                    variance < 0 ? "text-red-600" : "text-gray-500"
+                    variance > 0 ? "text-green-600 font-bold" :
+                    variance < 0 ? "text-red-600 font-bold" : "text-gray-500"
                   }`}>
-                    {variance === null ? "-" : (variance > 0 ? `+${variance}` : variance)}
+                    {variance === null ? "-" : (variance > 0 ? `+${variance.toFixed(1)} ${item.unit}` : `${variance.toFixed(1)} ${item.unit}`)}
                   </td>
                 </tr>
               );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Modal } from "@/components/ui/Modal";
 import { Wrench, Plus, CheckCircle2, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
@@ -22,13 +22,50 @@ const mockIssues: MaintenanceIssue[] = [];
 
 export default function MaintenanceKanban() {
   const { toast } = useToast();
-  const [issues, setIssues] = useState<MaintenanceIssue[]>(mockIssues);
+  const [issues, setIssues] = useState<MaintenanceIssue[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<Status | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newRoom, setNewRoom] = useState("");
   const [newIssue, setNewIssue] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("MEDIUM");
+
+  const loadIssues = () => {
+    try {
+      const saved = localStorage.getItem('hotel_maintenance_issues');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setIssues(parsed);
+          return;
+        }
+      }
+      setIssues([]);
+    } catch (_) {
+      setIssues([]);
+    }
+  };
+
+  useEffect(() => {
+    loadIssues();
+    const handleUpdate = () => loadIssues();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('maintenance_updated', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('maintenance_updated', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+    };
+  }, []);
+
+  const saveIssues = (newIssues: MaintenanceIssue[]) => {
+    setIssues(newIssues);
+    try {
+      localStorage.setItem('hotel_maintenance_issues', JSON.stringify(newIssues));
+      window.dispatchEvent(new Event('maintenance_updated'));
+    } catch (_) {}
+  };
 
   const columns: { title: string; status: Status; color: string; badgeColor: string }[] = [
     { title: "Open Issues", status: "OPEN", color: "border-t-rose-500", badgeColor: "bg-rose-100 text-rose-800" },
@@ -38,10 +75,30 @@ export default function MaintenanceKanban() {
   ];
 
   const moveIssue = (id: string, newStatus: Status) => {
-    setIssues((prev) =>
-      prev.map((issue) => (issue.id === id ? { ...issue, status: newStatus } : issue))
-    );
+    const updated = issues.map((issue) => (issue.id === id ? { ...issue, status: newStatus } : issue));
+    saveIssues(updated);
     toast(`Work order #${id} moved to ${newStatus}.`, "info");
+
+    // If an issue is resolved or closed, check if that room has any remaining open issues
+    const target = issues.find(i => i.id === id);
+    if (target && (newStatus === 'RESOLVED' || newStatus === 'CLOSED')) {
+      const remainingOpenForRoom = updated.some(i => i.roomNumber === target.roomNumber && (i.status === 'OPEN' || i.status === 'IN_PROGRESS'));
+      if (!remainingOpenForRoom) {
+        try {
+          const roomBoard = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
+          if (Array.isArray(roomBoard)) {
+            const updatedRooms = roomBoard.map((r: any) => {
+              if (String(r.roomNumber || r.id) === target.roomNumber) {
+                return { ...r, operational: 'In Service' };
+              }
+              return r;
+            });
+            localStorage.setItem('hotel_room_board_state', JSON.stringify(updatedRooms));
+            window.dispatchEvent(new Event('hotel_rooms_changed'));
+          }
+        } catch (_) {}
+      }
+    }
   };
 
   const handleCreateIssue = (e: React.FormEvent) => {
@@ -58,7 +115,24 @@ export default function MaintenanceKanban() {
       status: "OPEN",
       reportedAt: "Just now",
     };
-    setIssues([created, ...issues]);
+    const updated = [created, ...issues];
+    saveIssues(updated);
+
+    // Sync room to 'Out of Order' in Room Board
+    try {
+      const roomBoard = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
+      if (Array.isArray(roomBoard)) {
+        const updatedRooms = roomBoard.map((r: any) => {
+          if (String(r.roomNumber || r.id) === created.roomNumber) {
+            return { ...r, operational: 'Out of Order' };
+          }
+          return r;
+        });
+        localStorage.setItem('hotel_room_board_state', JSON.stringify(updatedRooms));
+        window.dispatchEvent(new Event('hotel_rooms_changed'));
+      }
+    } catch (_) {}
+
     setIsAddModalOpen(false);
     setNewRoom("");
     setNewIssue("");

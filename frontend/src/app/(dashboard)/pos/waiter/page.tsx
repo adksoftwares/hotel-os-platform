@@ -65,16 +65,41 @@ export default function WaiterHandheldPOS() {
   const [holdMains, setHoldMains] = useState(true);
   const [catalog, setCatalog] = useState<MenuItem[]>(MENU_CATALOG);
 
-  useEffect(() => {
+  const loadWaiterCatalog = () => {
     try {
+      const allSaved = localStorage.getItem('pos_all_menu_items');
+      if (allSaved) {
+        const parsed = JSON.parse(allSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCatalog(parsed);
+          return;
+        }
+      }
       const saved = localStorage.getItem('pos_custom_menu_items');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setCatalog([...MENU_CATALOG, ...parsed]);
+          return;
         }
       }
-    } catch (_) {}
+      setCatalog(MENU_CATALOG);
+    } catch (_) {
+      setCatalog(MENU_CATALOG);
+    }
+  };
+
+  useEffect(() => {
+    loadWaiterCatalog();
+    const handleUpdate = () => loadWaiterCatalog();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('hotel_menu_changed', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('hotel_menu_changed', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+    };
   }, []);
 
   // Active Ticket

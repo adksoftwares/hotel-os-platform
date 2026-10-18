@@ -57,25 +57,68 @@ export default function BillingDashboard() {
   // A4 Tax Invoice modal state
   const [showA4Invoice, setShowA4Invoice] = useState(false);
 
+  const loadFolios = () => {
+    try {
+      const saved = localStorage.getItem('hotel_billing_folios');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setFolios(parsed);
+          setSelectedFolio(prev => (parsed.some(p => p.id === prev?.id) ? prev : parsed[0]));
+          return;
+        }
+      }
+      setFolios([]);
+      setSelectedFolio(null);
+    } catch (_) {
+      setFolios([]);
+      setSelectedFolio(null);
+    }
+  };
+
+  React.useEffect(() => {
+    loadFolios();
+    const handleUpdate = () => loadFolios();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('billing_updated', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('billing_updated', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+    };
+  }, []);
+
+  const saveFolios = (newFolios: FolioItem[]) => {
+    setFolios(newFolios);
+    try {
+      localStorage.setItem('hotel_billing_folios', JSON.stringify(newFolios));
+      window.dispatchEvent(new Event('billing_updated'));
+    } catch (_) {}
+  };
+
   const handleCreateFolio = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const newId = `FOL-${Math.random().toString(16).substr(2, 4).toUpperCase()}`;
     const newFolio: FolioItem = { 
       id: newId, 
       guest: 'Corporate Master Account', 
       room: 'Conference Center', 
       roomType: 'Master Billing',
-      checkIn: '2026-10-11',
-      checkOut: '2026-10-12',
+      checkIn: todayStr,
+      checkOut: tomorrowStr,
       nights: 1,
       status: 'OPEN', 
       balance: 450.00,
       totalCharges: 450.00,
       paidAmount: 0,
       charges: [
-        { date: '2026-10-11', description: 'Conference Room Rental & Projector', amount: 450.00 }
+        { date: todayStr, description: 'Conference Room Rental & Projector', amount: 450.00 }
       ]
     };
-    setFolios([newFolio, ...folios]);
+    const updated = [newFolio, ...folios];
+    saveFolios(updated);
     setSelectedFolio(newFolio);
     toast(`Master Folio ${newId} created successfully.`, 'success');
   };
@@ -98,7 +141,7 @@ export default function BillingDashboard() {
       paidAmount: f.totalCharges 
     } : f);
 
-    setFolios(updated);
+    saveFolios(updated);
     setSelectedFolio({ ...selectedFolio, status: 'SETTLED', balance: 0, paidAmount: selectedFolio.totalCharges });
     toast(`Payment of ${formatCur(amount)} processed via ${method}! Folio settled.`, 'success');
   };
@@ -121,7 +164,7 @@ export default function BillingDashboard() {
 
   const invoiceData = selectedFolio ? {
     invoiceNumber: `INV-${selectedFolio.id.replace('FOL-', '')}`,
-    date: '2026-10-11',
+    date: new Date().toISOString().split('T')[0],
     folioId: selectedFolio.id,
     guestName: selectedFolio.guest,
     roomNumber: selectedFolio.room,

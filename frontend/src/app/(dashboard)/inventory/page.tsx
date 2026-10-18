@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -9,27 +9,12 @@ import {
   Search, AlertTriangle, CheckCircle2, Truck
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-
-interface InventoryItem {
-  sku: string;
-  name: string;
-  category: 'Kitchen' | 'Bar' | 'Housekeeping' | 'Beverages';
-  qty: number;
-  unit: string;
-  reorderLevel: number;
-  location: string;
-  unitCost: number;
-}
-
-const initialStock: InventoryItem[] = [
-  { sku: 'ING-BEEF', name: 'Premium Beef Tenderloin', category: 'Kitchen', qty: 45.5, unit: 'KG', reorderLevel: 20.0, location: 'Main Walk-In Freezer', unitCost: 28.50 },
-  { sku: 'ING-POT', name: 'Russet Potatoes (A-Grade)', category: 'Kitchen', qty: 12.0, unit: 'KG', reorderLevel: 25.0, location: 'Dry Store A', unitCost: 2.20 },
-  { sku: 'BEV-COLA', name: 'Craft Cola Postmix Syrup', category: 'Bar', qty: 5.0, unit: 'LITER', reorderLevel: 15.0, location: 'Bar Cellar Room', unitCost: 14.00 },
-  { sku: 'BEV-COF', name: 'Single Origin Espresso Beans', category: 'Beverages', qty: 32.0, unit: 'KG', reorderLevel: 10.0, location: 'Dry Store B', unitCost: 19.50 },
-  { sku: 'HK-SHAM', name: 'Luxury Guest Shampoo Bottles (50ml)', category: 'Housekeeping', qty: 240, unit: 'PCS', reorderLevel: 100, location: 'Linen Master Depot', unitCost: 1.10 },
-  { sku: 'HK-TOWL', name: 'Egyptian Cotton Bath Towels (700gsm)', category: 'Housekeeping', qty: 85, unit: 'PCS', reorderLevel: 50, location: 'Floor 2 Linen Closet', unitCost: 18.00 },
-  { sku: 'BAR-CHAM', name: 'Veuve Clicquot Brut Champagne', category: 'Bar', qty: 18, unit: 'BOTTLE', reorderLevel: 12, location: 'Wine Cellar Cooler', unitCost: 65.00 },
-];
+import { 
+  InventoryItem, 
+  initialStock, 
+  loadInventoryStock, 
+  saveInventoryStock 
+} from '@/lib/inventoryStorage';
 
 export default function InventoryDashboard() {
   const { toast } = useToast();
@@ -39,6 +24,19 @@ export default function InventoryDashboard() {
   const [isGrnModalOpen, setIsGrnModalOpen] = useState(false);
   const [selectedSku, setSelectedSku] = useState('BEV-COLA');
   const [grnQty, setGrnQty] = useState('');
+
+  useEffect(() => {
+    setStock(loadInventoryStock());
+    const handleSync = () => setStock(loadInventoryStock());
+    window.addEventListener('inventory_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('inventory_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
 
   const handleCreatePO = () => {
     toast('Draft Purchase Order PO-9042 generated for below-reorder items.', 'success');
@@ -52,9 +50,9 @@ export default function InventoryDashboard() {
       return;
     }
 
-    setStock(prev =>
-      prev.map(s => (s.sku === selectedSku ? { ...s, qty: s.qty + qty } : s))
-    );
+    const updated = stock.map(s => (s.sku === selectedSku ? { ...s, qty: s.qty + qty } : s));
+    setStock(updated);
+    saveInventoryStock(updated);
     const item = stock.find(s => s.sku === selectedSku);
     toast(`GRN-8810 recorded. Added ${qty} ${item?.unit || ''} to ${item?.name || selectedSku}.`, 'success');
     setIsGrnModalOpen(false);

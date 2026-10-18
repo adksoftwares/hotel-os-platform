@@ -197,15 +197,34 @@ export default function HousekeeperPortal() {
   };
 
   const handleToggleTimer = (roomId: string) => {
+    let nextState = false;
+    let targetRoomNumber = '';
     setRooms(prev => prev.map(r => {
       if (r.id === roomId) {
-        const nextState = !r.isTimerRunning;
+        nextState = !r.isTimerRunning;
+        targetRoomNumber = r.roomNumber;
         const newStatus = nextState ? 'CLEANING' : r.status;
         toast(nextState ? `Started cleaning timer for Room ${r.roomNumber}` : `Paused timer for Room ${r.roomNumber}`, 'info');
         return { ...r, isTimerRunning: nextState, status: newStatus };
       }
       return r;
     }));
+
+    if (nextState && targetRoomNumber) {
+      try {
+        const roomBoard = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
+        if (Array.isArray(roomBoard)) {
+          const updated = roomBoard.map((r: any) => {
+            if (String(r.roomNumber || r.id) === targetRoomNumber) {
+              return { ...r, housekeeping: 'Cleaning' };
+            }
+            return r;
+          });
+          localStorage.setItem('hotel_room_board_state', JSON.stringify(updated));
+          window.dispatchEvent(new Event('hotel_rooms_changed'));
+        }
+      } catch (_) {}
+    }
   };
 
   const handleUpdateMinibar = (roomId: string, itemId: string, delta: number) => {
@@ -233,16 +252,42 @@ export default function HousekeeperPortal() {
       return;
     }
 
-    // Save charge to localStorage audit
-    const minibarCharges = JSON.parse(localStorage.getItem('minibar_charges') || '[]');
-    minibarCharges.push({
-      roomNumber: room.roomNumber,
-      attendant: attendantName,
-      total: consumedTotal,
-      items: room.minibar.filter(it => it.consumed > 0),
-      timestamp: new Date().toISOString()
-    });
-    localStorage.setItem('minibar_charges', JSON.stringify(minibarCharges));
+    // 1. Post to Billing Folios in localStorage
+    try {
+      const existingFolios = JSON.parse(localStorage.getItem('hotel_billing_folios') || '[]');
+      const targetRoom = String(room.roomNumber);
+      let folio = existingFolios.find((f: any) => String(f.room) === targetRoom && f.status !== 'SETTLED');
+      const consumedNames = room.minibar.filter(it => it.consumed > 0).map(it => `${it.name} x${it.consumed}`).join(', ');
+      const newCharge = {
+        date: new Date().toISOString().split('T')[0],
+        description: `Minibar Restock (${consumedNames})`,
+        amount: consumedTotal,
+      };
+
+      if (folio) {
+        folio.charges = [...(folio.charges || []), newCharge];
+        folio.totalCharges = (Number(folio.totalCharges) || 0) + consumedTotal;
+        folio.balance = (Number(folio.balance) || 0) + consumedTotal;
+      } else {
+        const newFolio = {
+          id: `FOL-${Math.random().toString(16).substr(2, 4).toUpperCase()}`,
+          guest: room.guestName || `Guest in Room ${room.roomNumber}`,
+          room: targetRoom,
+          roomType: room.type,
+          checkIn: new Date().toISOString().split('T')[0],
+          checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          nights: 1,
+          status: 'OPEN',
+          balance: consumedTotal,
+          totalCharges: consumedTotal,
+          paidAmount: 0,
+          charges: [newCharge],
+        };
+        existingFolios.unshift(newFolio);
+      }
+      localStorage.setItem('hotel_billing_folios', JSON.stringify(existingFolios));
+      window.dispatchEvent(new Event('billing_updated'));
+    } catch (_) {}
 
     toast(`Successfully posted Rs. ${consumedTotal.toFixed(2)} Minibar charges to Room ${room.roomNumber} folio!`, 'success');
   };
@@ -274,6 +319,21 @@ export default function HousekeeperPortal() {
       return r;
     }));
 
+    // Update Room Board state
+    try {
+      const roomBoard = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
+      if (Array.isArray(roomBoard)) {
+        const updated = roomBoard.map((r: any) => {
+          if (String(r.roomNumber || r.id) === String(room.roomNumber)) {
+            return { ...r, housekeeping: 'Clean' };
+          }
+          return r;
+        });
+        localStorage.setItem('hotel_room_board_state', JSON.stringify(updated));
+        window.dispatchEvent(new Event('hotel_rooms_changed'));
+      }
+    } catch (_) {}
+
     toast(`Room ${room.roomNumber} marked CLEAN! Sent inspection request to Floor Supervisor.`, 'success');
   };
 
@@ -282,8 +342,37 @@ export default function HousekeeperPortal() {
       toast("Please describe the maintenance issue", 'error');
       return;
     }
+    const targetRoom = activeRoom?.roomNumber || '';
+    
+    // 1. Save issue to Maintenance Kanban board
+    try {
+      const existingIssues = JSON.parse(localStorage.getItem('hotel_maintenance_issues') || '[]');
+      const newIssueItem = {
+        id: Date.now().toString(),
+        roomNumber: targetRoom,
+        issue: maintDescription.trim(),
+        priority: maintPriority,
+        status: 'OPEN',
+        reportedAt: 'Just now',
+      };
+      localStorage.setItem('hotel_maintenance_issues', JSON.stringify([newIssueItem, ...existingIssues]));
+      window.dispatchEvent(new Event('maintenance_updated'));
 
-    toast(`Maintenance work order logged for Room ${activeRoom?.roomNumber || ''} [${maintPriority} priority]`, 'success');
+      // 2. Mark room Operational status to 'Out of Order' in Room Board
+      const roomBoard = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
+      if (Array.isArray(roomBoard)) {
+        const updatedRooms = roomBoard.map((r: any) => {
+          if (String(r.roomNumber || r.id) === targetRoom) {
+            return { ...r, operational: 'Out of Order' };
+          }
+          return r;
+        });
+        localStorage.setItem('hotel_room_board_state', JSON.stringify(updatedRooms));
+        window.dispatchEvent(new Event('hotel_rooms_changed'));
+      }
+    } catch (_) {}
+
+    toast(`Maintenance work order logged for Room ${targetRoom} [${maintPriority} priority]`, 'success');
     setShowMaintModal(false);
     setMaintDescription('');
   };

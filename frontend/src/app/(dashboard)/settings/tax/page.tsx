@@ -15,12 +15,38 @@ const initialTaxes: TaxConfig[] = [
   { id: '2', name: 'City Tax', rate: 5, inclusive: true, active: true },
 ];
 
+const STORAGE_KEY = 'hotel_tax_configs';
+
+const loadTaxes = (): TaxConfig[] => {
+  if (typeof window === 'undefined') return initialTaxes;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (_) {}
+  return initialTaxes;
+};
+
+const saveTaxes = (data: TaxConfig[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('taxes_updated'));
+  } catch (_) {}
+};
+
 export default function TaxConfiguration() {
   const [taxes, setTaxes] = useState<TaxConfig[]>(initialTaxes);
   const [showModal, setShowModal] = useState(false);
   const [newTax, setNewTax] = useState<Partial<TaxConfig>>({
     name: '', rate: 0, inclusive: false, active: true
   });
+
+  useEffect(() => {
+    setTaxes(loadTaxes());
+  }, []);
 
   const handleAddTax = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +57,9 @@ export default function TaxConfiguration() {
       inclusive: newTax.inclusive || false,
       active: newTax.active ?? true,
     };
-    setTaxes([...taxes, tax]);
+    const updated = [...taxes, tax];
+    setTaxes(updated);
+    saveTaxes(updated);
     setShowModal(false);
     setNewTax({ name: '', rate: 0, inclusive: false, active: true });
   };
@@ -41,7 +69,7 @@ export default function TaxConfiguration() {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { try { setShowModal(false); } catch(_){} } };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  });
+  }, []);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">

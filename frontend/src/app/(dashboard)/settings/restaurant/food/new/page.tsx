@@ -61,6 +61,21 @@ export default function AddFoodPage() {
       const updated = [...filtered, newItem];
       localStorage.setItem('hotel_menu_items', JSON.stringify(updated));
       localStorage.setItem('restaurant_menu_items', JSON.stringify(updated));
+
+      // Also sync to POS and Waiter POS catalog
+      const existingPos = JSON.parse(localStorage.getItem('pos_all_menu_items') || '[]');
+      const newPosItem = {
+        id: newItem.id,
+        name: newItem.name,
+        price: newItem.price,
+        category: newItem.category,
+        status: newItem.available ? 'AVAILABLE' : '86',
+        rating: 4.8,
+        description: '',
+      };
+      const filteredPos = Array.isArray(existingPos) ? existingPos.filter((p: any) => p.name !== itemName) : [];
+      localStorage.setItem('pos_all_menu_items', JSON.stringify([...filteredPos, newPosItem]));
+
       window.dispatchEvent(new Event('hotel_menu_changed'));
     } catch (_) {}
 

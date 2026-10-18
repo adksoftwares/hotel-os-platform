@@ -585,6 +585,47 @@ export default function RestaurantPOS() {
   };
 
   const handleTransferToRoom = () => {
+    if (orderItems.length === 0) {
+      toast("No order items to charge!", 'error');
+      return;
+    }
+    const targetRoom = String(selectedRoomNumber);
+    const itemNames = orderItems.map(i => `${i.name} (x${i.qty})`).join(', ');
+
+    try {
+      const existingFolios = JSON.parse(localStorage.getItem('hotel_billing_folios') || '[]');
+      let folio = existingFolios.find((f: any) => String(f.room) === targetRoom && f.status !== 'SETTLED');
+      const newCharge = {
+        date: new Date().toISOString().split('T')[0],
+        description: `Restaurant Dining (${itemNames})`,
+        amount: grandTotal,
+      };
+
+      if (folio) {
+        folio.charges = [...(folio.charges || []), newCharge];
+        folio.totalCharges = (Number(folio.totalCharges) || 0) + grandTotal;
+        folio.balance = (Number(folio.balance) || 0) + grandTotal;
+      } else {
+        const newFolio = {
+          id: `FOL-${Math.random().toString(16).substr(2, 4).toUpperCase()}`,
+          guest: `Guest in Room ${targetRoom}`,
+          room: targetRoom,
+          roomType: 'Deluxe Suite',
+          checkIn: new Date().toISOString().split('T')[0],
+          checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          nights: 1,
+          status: 'OPEN',
+          balance: grandTotal,
+          totalCharges: grandTotal,
+          paidAmount: 0,
+          charges: [newCharge],
+        };
+        existingFolios.unshift(newFolio);
+      }
+      localStorage.setItem('hotel_billing_folios', JSON.stringify(existingFolios));
+      window.dispatchEvent(new Event('billing_updated'));
+    } catch (_) {}
+
     setShowRoomChargeModal(false);
     toast(`Rs. ${grandTotal.toFixed(2)} charged to Room ${selectedRoomNumber} Folio!`, 'success');
     setOrderItems([]);
