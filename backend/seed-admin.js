@@ -15,7 +15,7 @@ async function main() {
     });
   }
 
-  const passwordHash = await bcrypt.hash('admin123', 10);
+  const passwordHash = await bcrypt.hash('Admin@123', 10);
 
   const admin = await prisma.user.create({
     data: {
@@ -29,7 +29,7 @@ async function main() {
   });
 
   console.log('Created Admin:', admin.email);
-  console.log('Password: admin123');
+  console.log('Password: Admin@123');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

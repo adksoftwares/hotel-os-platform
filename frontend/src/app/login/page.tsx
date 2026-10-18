@@ -5,7 +5,7 @@ import { Building2, Lock, Mail, AlertCircle, ArrowRight, Eye, EyeOff } from 'luc
 
 export default function Login() {
   const [email, setEmail] = useState('super_admin@gmail.com');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('Admin@123');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
