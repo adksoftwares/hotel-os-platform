@@ -110,6 +110,28 @@ export default function MenuManagement() {
     try {
       localStorage.setItem('hotel_menu_items', JSON.stringify(newMenu));
       localStorage.setItem('restaurant_menu_items', JSON.stringify(newMenu));
+
+      // Also sync to POS catalog so POS immediately reflects edits/adds
+      const existingPos = JSON.parse(localStorage.getItem('pos_all_menu_items') || '[]');
+      const categoryMap: Record<string, string> = {
+        'Appetizers': 'Starters',
+        'Main Course': 'Mains',
+        'Desserts': 'Desserts',
+        'Beverages': 'Beverages'
+      };
+      const syncedPos = newMenu.map(m => {
+        const found = Array.isArray(existingPos) ? existingPos.find((p: any) => p.name === m.name || p.id === m.id) : null;
+        return {
+          id: m.id,
+          name: m.name,
+          category: categoryMap[m.category] || m.category || 'Mains',
+          price: m.basePrice || (m.variants && m.variants[0]?.price) || 0,
+          course: m.category === 'Appetizers' ? 'Starters' : m.category === 'Desserts' ? 'Desserts' : m.category === 'Beverages' ? 'Beverages' : 'Main Course',
+          img: m.image || found?.img || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80',
+          station: m.category === 'Beverages' ? 'Bar' : 'Kitchen'
+        };
+      });
+      localStorage.setItem('pos_all_menu_items', JSON.stringify(syncedPos));
       window.dispatchEvent(new Event('hotel_menu_changed'));
     } catch (e) {}
   };
@@ -399,18 +421,23 @@ export default function MenuManagement() {
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
             onClick={() => { setShowModal(false); setEditingId(null); }}
           />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200 z-10 border border-slate-100">
-            <div className="flex justify-between items-center p-6 border-b border-slate-200">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden my-4 animate-in fade-in zoom-in-95 duration-200 z-10 border border-slate-100">
+            {/* Modal Header - Pinned at Top */}
+            <div className="flex justify-between items-center p-5 px-6 border-b border-slate-200 shrink-0 bg-white">
               <h2 className="text-xl font-bold text-slate-900">
                 {editingId ? `Edit Food Details - ${formData.name || ''}` : 'Add New Food Item'}
               </h2>
-              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="text-slate-400 hover:text-slate-600">
-                <X size={24} />
+              <button 
+                onClick={() => { setShowModal(false); setEditingId(null); }} 
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              {/* Scrollable Form Body */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Item Name *</label>
@@ -481,7 +508,7 @@ export default function MenuManagement() {
                     <button 
                       type="button"
                       onClick={handleAddVariant}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer"
                     >
                       Add
                     </button>
@@ -495,7 +522,7 @@ export default function MenuManagement() {
                           <button 
                             type="button" 
                             onClick={() => handleRemoveVariant(v.id)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 cursor-pointer"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -519,17 +546,18 @@ export default function MenuManagement() {
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-200">
+              {/* Sticky Footer - Always Visible on Screen */}
+              <div className="p-4 px-6 flex justify-end items-center gap-3 border-t border-slate-200 bg-slate-50 shrink-0">
                 <button 
                   type="button"
                   onClick={() => { setShowModal(false); setEditingId(null); }}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+                  className="px-4 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-white font-semibold transition-colors cursor-pointer text-sm"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer text-sm"
                 >
                   <Check size={18} />
                   {editingId ? 'Save Changes' : 'Save Food Item'}
