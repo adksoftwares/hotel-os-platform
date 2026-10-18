@@ -117,11 +117,63 @@ const INITIAL_ASSIGNED_ROOMS: AssignedRoom[] = [
 export default function HousekeeperPortal() {
   const { toast } = useToast();
   const [attendantName] = useState('Priya Selvam');
-  const [rooms, setRooms] = useState<AssignedRoom[]>(INITIAL_ASSIGNED_ROOMS);
-  const [selectedRoomId, setSelectedRoomId] = useState<string>('R102');
+  const [rooms, setRooms] = useState<AssignedRoom[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [showMaintModal, setShowMaintModal] = useState(false);
   const [maintDescription, setMaintDescription] = useState('');
   const [maintPriority, setMaintPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>('MEDIUM');
+
+  // Load rooms from fleet storage
+  const loadFleetRooms = () => {
+    try {
+      const saved = localStorage.getItem('hotel_room_board_state');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped: AssignedRoom[] = parsed.map((p: any) => ({
+            id: `R${p.roomNumber || p.id}`,
+            roomNumber: String(p.roomNumber || p.id),
+            type: p.type || 'Standard',
+            floor: typeof p.floor === 'number' ? p.floor : 1,
+            cleanType: 'Stayover',
+            status: ((p.housekeeping || 'CLEAN').toUpperCase() as any),
+            priority: 'NORMAL',
+            guestName: p.currentGuest || 'Vacant',
+            cleaningSeconds: 0,
+            isTimerRunning: false,
+            minibar: [
+              { id: 'mb1', name: 'Evian Sparkling Water (500ml)', price: 6.0, consumed: 0 },
+              { id: 'mb2', name: 'Belgian Dark Chocolate Bar', price: 8.0, consumed: 0 },
+              { id: 'mb3', name: 'Heineken Lager Beer', price: 9.0, consumed: 0 },
+              { id: 'mb4', name: 'Gourmet Roasted Cashews', price: 7.0, consumed: 0 },
+            ],
+            checklist: { linens: false, towels: false, amenities: false, disinfection: false }
+          }));
+          setRooms(mapped);
+          setSelectedRoomId(prev => (mapped.some(m => m.id === prev) ? prev : mapped[0]?.id || ''));
+          return;
+        }
+      }
+      setRooms([]);
+      setSelectedRoomId('');
+    } catch (_) {
+      setRooms([]);
+      setSelectedRoomId('');
+    }
+  };
+
+  useEffect(() => {
+    loadFleetRooms();
+    const handleUpdate = () => loadFleetRooms();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('hotel_rooms_changed', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('hotel_rooms_changed', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+    };
+  }, []);
 
   // Live Stopwatch Tick
   useEffect(() => {
@@ -231,7 +283,7 @@ export default function HousekeeperPortal() {
       return;
     }
 
-    toast(`Maintenance work order logged for Room ${activeRoom.roomNumber} [${maintPriority} priority]`, 'success');
+    toast(`Maintenance work order logged for Room ${activeRoom?.roomNumber || ''} [${maintPriority} priority]`, 'success');
     setShowMaintModal(false);
     setMaintDescription('');
   };
@@ -286,7 +338,25 @@ export default function HousekeeperPortal() {
       </div>
 
       {/* Main Grid: Room Roster Left / Detailed Action Pad Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {rooms.length === 0 ? (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-slate-800 text-sky-400 flex items-center justify-center mb-4 border border-slate-700">
+            <Bed className="w-8 h-8" />
+          </div>
+          <h2 className="text-lg font-bold text-white">No Assigned Rooms in Fleet</h2>
+          <p className="text-xs text-slate-400 max-w-md mt-1 mb-6">
+            There are currently no rooms created in the hotel fleet. Once rooms are created, they will be listed here for housekeeping tasks and minibar tracking.
+          </p>
+          <Link
+            href="/settings/rooms/new"
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-lg inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Create Room in Fleet</span>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
         {/* Left: Assigned Rooms Cards */}
         <div className="lg:col-span-5 space-y-3">
@@ -517,8 +587,8 @@ export default function HousekeeperPortal() {
           </div>
 
         </div>
-
       </div>
+      )}
 
       {/* Maintenance Report Modal */}
       {showMaintModal && (
@@ -527,7 +597,7 @@ export default function HousekeeperPortal() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="font-bold text-white text-base flex items-center gap-2">
                 <Wrench className="w-4 h-4 text-amber-400" />
-                Report Damage / Defect in Room {activeRoom.roomNumber}
+                Report Damage / Defect in Room {activeRoom?.roomNumber || ''}
               </h3>
               <button 
                 onClick={() => setShowMaintModal(false)}

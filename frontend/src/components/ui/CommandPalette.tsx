@@ -18,7 +18,24 @@ export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [fleetRooms, setFleetRooms] = useState<{ roomNumber: string; type: string }[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('hotel_room_board_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setFleetRooms(parsed.map((r: any) => ({ roomNumber: String(r.roomNumber || r.id), type: r.type || 'Standard Room' })));
+          return;
+        }
+      }
+      setFleetRooms([]);
+    } catch (_) {
+      setFleetRooms([]);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,9 +73,13 @@ export function CommandPalette() {
     { id: 'act-stock', title: 'Initiate Physical Stocktake', category: 'Actions', icon: <Receipt className="w-4 h-4 text-purple-500" />, action: () => router.push('/inventory/stocktake') },
 
     // Rooms & Quick Entities
-    { id: 'ent-101', title: 'Room 101 (Deluxe King)', category: 'Rooms & Tables', icon: <Bed className="w-4 h-4 text-blue-500" />, action: () => router.push('/rooms/101') },
-    { id: 'ent-102', title: 'Room 102 (Standard Queen)', category: 'Rooms & Tables', icon: <Bed className="w-4 h-4 text-blue-500" />, action: () => router.push('/rooms/102') },
-    { id: 'ent-201', title: 'Room 201 (Executive Suite)', category: 'Rooms & Tables', icon: <Bed className="w-4 h-4 text-blue-500" />, action: () => router.push('/rooms/201') },
+    ...fleetRooms.map(r => ({
+      id: `ent-${r.roomNumber}`,
+      title: `Room ${r.roomNumber} (${r.type})`,
+      category: 'Rooms & Tables' as const,
+      icon: <Bed className="w-4 h-4 text-blue-500" />,
+      action: () => router.push(`/rooms/${r.roomNumber}`)
+    })),
     { id: 'ent-tbl4', title: 'Table 4 (Garden Dining)', category: 'Rooms & Tables', icon: <Utensils className="w-4 h-4 text-amber-500" />, action: () => router.push('/pos') },
   ];
 

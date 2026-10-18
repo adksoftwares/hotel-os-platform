@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Calendar as CalendarIcon, List, Plus, Search, Filter, 
   ChevronLeft, ChevronRight, Bed, User, Clock, CheckCircle2, 
@@ -13,7 +14,7 @@ export interface Reservation {
   email: string;
   phone: string;
   roomNumber: string;
-  roomType: 'Standard Queen' | 'Deluxe King' | 'Executive Suite' | 'Presidential Suite';
+  roomType: string;
   checkIn: string; // YYYY-MM-DD
   checkOut: string; // YYYY-MM-DD
   nights: number;
@@ -23,17 +24,13 @@ export interface Reservation {
   vip?: boolean;
 }
 
-const mockRooms = [
-  { number: '101', type: 'Standard Queen', housekeeping: 'CLEAN', floor: '1st Floor' },
-  { number: '102', type: 'Standard Queen', housekeeping: 'DIRTY', floor: '1st Floor' },
-  { number: '103', type: 'Standard Queen', housekeeping: 'CLEAN', floor: '1st Floor' },
-  { number: '201', type: 'Deluxe King', housekeeping: 'INSPECTED', floor: '2nd Floor' },
-  { number: '202', type: 'Deluxe King', housekeeping: 'CLEAN', floor: '2nd Floor' },
-  { number: '205', type: 'Deluxe King', housekeeping: 'DIRTY', floor: '2nd Floor' },
-  { number: '301', type: 'Executive Suite', housekeeping: 'INSPECTED', floor: '3rd Floor' },
-  { number: '305', type: 'Executive Suite', housekeeping: 'CLEAN', floor: '3rd Floor' },
-  { number: '401', type: 'Presidential Suite', housekeeping: 'INSPECTED', floor: '4th Floor' },
-];
+export interface RoomRackItem {
+  number: string;
+  type: string;
+  housekeeping: string;
+  floor: string;
+  pricePerNight?: number;
+}
 
 const initialReservations: Reservation[] = [];
 
@@ -45,6 +42,44 @@ export default function ReservationsPage() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [rooms, setRooms] = useState<RoomRackItem[]>([]);
+
+  // Load actual rooms from shared fleet state in localStorage
+  const loadRooms = () => {
+    try {
+      const saved = localStorage.getItem('hotel_room_board_state');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped: RoomRackItem[] = parsed.map((r: any) => ({
+            number: String(r.roomNumber || r.id),
+            type: r.type || 'Standard Room',
+            housekeeping: (r.housekeeping || 'CLEAN').toUpperCase(),
+            floor: typeof r.floor === 'number' ? `Floor ${r.floor}` : (r.floor || '1st Floor'),
+            pricePerNight: r.pricePerNight || 160,
+          }));
+          setRooms(mapped);
+          return;
+        }
+      }
+      setRooms([]);
+    } catch (_) {
+      setRooms([]);
+    }
+  };
+
+  useEffect(() => {
+    loadRooms();
+    const handleUpdate = () => loadRooms();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('hotel_rooms_changed', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('hotel_rooms_changed', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+    };
+  }, []);
 
   // Tape chart timeline dates generation (10 days starting Oct 11, 2026)
   const baseDate = new Date(2026, 9, 11); // Oct 11, 2026
@@ -77,8 +112,8 @@ export default function ReservationsPage() {
     guestName: '',
     email: '',
     phone: '',
-    roomNumber: '101',
-    roomType: 'Standard Queen' as Reservation['roomType'],
+    roomNumber: '',
+    roomType: 'Standard Queen',
     checkIn: '2026-10-11',
     checkOut: '2026-10-13',
     ratePerNight: 160,
@@ -86,12 +121,31 @@ export default function ReservationsPage() {
     vip: false,
   });
 
+  const handleOpenNewModal = () => {
+    if (rooms.length === 0) {
+      toast('No rooms found in fleet. Please add a room first.', 'info');
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        roomNumber: rooms[0].number,
+        roomType: rooms[0].type,
+        ratePerNight: rooms[0].pricePerNight || 160,
+      }));
+    }
+    setShowNewModal(true);
+  };
+
   const handleCreateReservation = (e: React.FormEvent) => {
     e.preventDefault();
+    if (rooms.length === 0) {
+      toast('Cannot create reservation: No rooms exist in fleet. Please add a room first.', 'error');
+      return;
+    }
     if (!formData.guestName.trim()) {
       toast('Guest name is required', 'error');
       return;
     }
+    const allocatedRoom = rooms.find(r => r.number === formData.roomNumber) || rooms[0];
     const checkInDate = new Date(formData.checkIn);
     const checkOutDate = new Date(formData.checkOut);
     const nights = Math.max(1, Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24)));
@@ -102,8 +156,8 @@ export default function ReservationsPage() {
       guestName: formData.guestName,
       email: formData.email || 'guest@hotel.com',
       phone: formData.phone || '+1 555 0192',
-      roomNumber: formData.roomNumber,
-      roomType: formData.roomType,
+      roomNumber: allocatedRoom.number,
+      roomType: allocatedRoom.type,
       checkIn: formData.checkIn,
       checkOut: formData.checkOut,
       nights,
@@ -206,7 +260,7 @@ export default function ReservationsPage() {
           </div>
 
           <button
-            onClick={() => setShowNewModal(true)}
+            onClick={handleOpenNewModal}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -254,7 +308,7 @@ export default function ReservationsPage() {
               <div className="grid grid-cols-12 border-b border-slate-200 bg-slate-100/80 text-xs font-semibold text-slate-700">
                 <div className="col-span-2 p-3.5 border-r border-slate-200 flex items-center justify-between">
                   <span>Room & Status</span>
-                  <span className="text-[10px] text-slate-400 font-normal">9 Rooms</span>
+                  <span className="text-[10px] text-slate-400 font-normal">{rooms.length} {rooms.length === 1 ? 'Room' : 'Rooms'}</span>
                 </div>
                 {timelineDates.map((td) => (
                   <div
@@ -270,86 +324,105 @@ export default function ReservationsPage() {
               </div>
 
               {/* Rows: Rooms & Horizontal Booking Blocks */}
-              <div className="divide-y divide-slate-100">
-                {mockRooms.map((room) => {
-                  const roomReservations = reservations.filter(r => r.roomNumber === room.number && r.status !== 'CANCELLED');
+              {rooms.length === 0 ? (
+                <div className="p-16 text-center bg-white flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 border border-emerald-100 shadow-xs">
+                    <Bed className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-800">No Rooms in Fleet</h3>
+                  <p className="text-xs text-slate-500 max-w-md mt-1 mb-5">
+                    No rooms have been created yet. Once rooms are created in your property fleet, they will automatically appear here on the reservation rack schedule.
+                  </p>
+                  <Link
+                    href="/settings/rooms/new"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Add New Room to Fleet</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {rooms.map((room) => {
+                    const roomReservations = reservations.filter(r => r.roomNumber === room.number && r.status !== 'CANCELLED');
 
-                  return (
-                    <div key={room.number} className="grid grid-cols-12 relative min-h-[56px] hover:bg-slate-50/50 transition-colors">
-                      {/* Left Room Info Column */}
-                      <div className="col-span-2 p-3 border-r border-slate-200 flex items-center justify-between bg-white sticky left-0 z-10">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-800 text-sm">Room {room.number}</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                              room.housekeeping === 'INSPECTED' ? 'bg-emerald-100 text-emerald-800' :
-                              room.housekeeping === 'CLEAN' ? 'bg-blue-100 text-blue-800' :
-                              'bg-amber-100 text-amber-800'
-                            }`}>
-                              {room.housekeeping[0]}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 leading-none mt-1">{room.type}</p>
-                        </div>
-                      </div>
-
-                      {/* Day Grid Background Cells */}
-                      {timelineDates.map((td) => (
-                        <div
-                          key={td.dateStr}
-                          className={`col-span-1 border-r border-slate-100 last:border-r-0 h-full ${
-                            td.isWeekend ? 'bg-slate-50/40' : ''
-                          }`}
-                        />
-                      ))}
-
-                      {/* Overlaid Booking Blocks */}
-                      <div className="absolute left-[16.666%] right-0 top-0 bottom-0 pointer-events-none flex items-center">
-                        {roomReservations.map((res) => {
-                          // Calculate start offset & width
-                          const checkInIdx = timelineDates.findIndex(td => td.dateStr === res.checkIn);
-                          const checkOutIdx = timelineDates.findIndex(td => td.dateStr === res.checkOut);
-
-                          const startDay = checkInIdx !== -1 ? checkInIdx : 0;
-                          const endDay = checkOutIdx !== -1 ? checkOutIdx : (checkInIdx + res.nights);
-                          const durationDays = Math.max(1, endDay - startDay);
-
-                          const leftPct = (startDay / 10) * 100;
-                          const widthPct = (durationDays / 10) * 100;
-
-                          return (
-                            <div
-                              key={res.id}
-                              onClick={() => setSelectedRes(res)}
-                              style={{
-                                left: `${leftPct}%`,
-                                width: `${Math.min(100 - leftPct, widthPct)}%`,
-                              }}
-                              className={`absolute pointer-events-auto h-10 rounded-xl px-3 py-1 cursor-pointer shadow-sm hover:shadow-md transition-all flex items-center justify-between text-white text-xs select-none border ${
-                                res.vip
-                                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-400'
-                                  : res.status === 'CHECKED_IN'
-                                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-400'
-                                  : 'bg-gradient-to-r from-blue-600 to-sky-600 border-blue-400'
-                              }`}
-                            >
-                              <div className="truncate pr-2">
-                                <span className="font-bold truncate">{res.guestName}</span>
-                                <span className="hidden sm:inline-block text-[10px] text-white/80 ml-1.5">
-                                  ({res.nights}n · Rs. {res.totalAmount})
-                                </span>
-                              </div>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/20 font-mono shrink-0">
-                                {res.status === 'CHECKED_IN' ? 'In-House' : 'Confirmed'}
+                    return (
+                      <div key={room.number} className="grid grid-cols-12 relative min-h-[56px] hover:bg-slate-50/50 transition-colors">
+                        {/* Left Room Info Column */}
+                        <div className="col-span-2 p-3 border-r border-slate-200 flex items-center justify-between bg-white sticky left-0 z-10">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800 text-sm">Room {room.number}</span>
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                                room.housekeeping === 'INSPECTED' ? 'bg-emerald-100 text-emerald-800' :
+                                room.housekeeping === 'CLEAN' ? 'bg-blue-100 text-blue-800' :
+                                'bg-amber-100 text-amber-800'
+                              }`}>
+                                {room.housekeeping[0] || 'C'}
                               </span>
                             </div>
-                          );
-                        })}
+                            <p className="text-[11px] text-slate-400 leading-none mt-1">{room.type}</p>
+                          </div>
+                        </div>
+
+                        {/* Day Grid Background Cells */}
+                        {timelineDates.map((td) => (
+                          <div
+                            key={td.dateStr}
+                            className={`col-span-1 border-r border-slate-100 last:border-r-0 h-full ${
+                              td.isWeekend ? 'bg-slate-50/40' : ''
+                            }`}
+                          />
+                        ))}
+
+                        {/* Overlaid Booking Blocks */}
+                        <div className="absolute left-[16.666%] right-0 top-0 bottom-0 pointer-events-none flex items-center">
+                          {roomReservations.map((res) => {
+                            // Calculate start offset & width
+                            const checkInIdx = timelineDates.findIndex(td => td.dateStr === res.checkIn);
+                            const checkOutIdx = timelineDates.findIndex(td => td.dateStr === res.checkOut);
+
+                            const startDay = checkInIdx !== -1 ? checkInIdx : 0;
+                            const endDay = checkOutIdx !== -1 ? checkOutIdx : (checkInIdx + res.nights);
+                            const durationDays = Math.max(1, endDay - startDay);
+
+                            const leftPct = (startDay / 10) * 100;
+                            const widthPct = (durationDays / 10) * 100;
+
+                            return (
+                              <div
+                                key={res.id}
+                                onClick={() => setSelectedRes(res)}
+                                style={{
+                                  left: `${leftPct}%`,
+                                  width: `${Math.min(100 - leftPct, widthPct)}%`,
+                                }}
+                                className={`absolute pointer-events-auto h-10 rounded-xl px-3 py-1 cursor-pointer shadow-sm hover:shadow-md transition-all flex items-center justify-between text-white text-xs select-none border ${
+                                  res.vip
+                                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-400'
+                                    : res.status === 'CHECKED_IN'
+                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-400'
+                                    : 'bg-gradient-to-r from-blue-600 to-sky-600 border-blue-400'
+                                }`}
+                              >
+                                <div className="truncate pr-2">
+                                  <span className="font-bold truncate">{res.guestName}</span>
+                                  <span className="hidden sm:inline-block text-[10px] text-white/80 ml-1.5">
+                                    ({res.nights}n · Rs. {res.totalAmount})
+                                  </span>
+                                </div>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/20 font-mono shrink-0">
+                                  {res.status === 'CHECKED_IN' ? 'In-House' : 'Confirmed'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -648,25 +721,34 @@ export default function ReservationsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Allocate Room *</label>
-                  <select
-                    value={formData.roomNumber}
-                    onChange={(e) => {
-                      const r = mockRooms.find(m => m.number === e.target.value);
-                      setFormData({ 
-                        ...formData, 
-                        roomNumber: e.target.value,
-                        roomType: (r ? r.type : 'Standard Queen') as any,
-                        ratePerNight: r?.type.includes('Presidential') ? 800 : r?.type.includes('Executive') ? 350 : r?.type.includes('Deluxe') ? 225 : 160
-                      });
-                    }}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                  >
-                    {mockRooms.map(r => (
-                      <option key={r.number} value={r.number}>
-                        Room {r.number} - {r.type} ({r.housekeeping})
-                      </option>
-                    ))}
-                  </select>
+                  {rooms.length === 0 ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between">
+                      <span>No rooms available in fleet.</span>
+                      <Link href="/settings/rooms/new" className="font-bold underline text-amber-900 ml-2">
+                        + Add Room
+                      </Link>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.roomNumber}
+                      onChange={(e) => {
+                        const r = rooms.find(m => m.number === e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          roomNumber: e.target.value,
+                          roomType: r ? r.type : 'Standard',
+                          ratePerNight: r?.pricePerNight || 160
+                        });
+                      }}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    >
+                      {rooms.map(r => (
+                        <option key={r.number} value={r.number}>
+                          Room {r.number} - {r.type} ({r.housekeeping})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -715,7 +797,8 @@ export default function ReservationsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors shadow-sm"
+                  disabled={rooms.length === 0}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-colors shadow-sm"
                 >
                   Confirm Booking
                 </button>
