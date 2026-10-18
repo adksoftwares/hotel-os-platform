@@ -73,30 +73,33 @@ export default function KitchenDisplaySystem() {
 
   useEffect(() => {
     // Sync with local storage
-    const syncLocalKots = () => {
+    const syncLocalKots = (playSound = false) => {
       try {
         const stored = localStorage.getItem('kds_kots');
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setKots(prev => {
-              const ids = new Set(prev.map(k => k.id));
-              const newArrivals = parsed.filter((p: any) => !ids.has(p.id)).map((p: any) => ({
-                ...p,
-                timestamp: p.timestamp || Date.now(),
-              }));
-              if (newArrivals.length > 0) {
-                playKitchenChime();
-              }
-              return [...newArrivals, ...prev];
-            });
+          if (Array.isArray(parsed)) {
+            const mapped = parsed.map((p: any) => ({
+              ...p,
+              timestamp: p.timestamp || Date.now(),
+              status: (p.status === 'NEW' || !p.status) ? 'PENDING' : p.status,
+            }));
+            setKots(mapped);
+            if (playSound && mapped.length > 0) {
+              playKitchenChime();
+            }
           }
         }
       } catch (e) {}
     };
 
-    window.addEventListener('kots_updated', syncLocalKots);
-    window.addEventListener('storage', syncLocalKots);
+    // Run immediately on component mount!
+    syncLocalKots(false);
+
+    const handleUpdate = () => syncLocalKots(true);
+    window.addEventListener('kots_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('focus', () => syncLocalKots(false));
 
     // Socket listener
     const socket: Socket = io('http://localhost:3001', {
@@ -106,22 +109,24 @@ export default function KitchenDisplaySystem() {
     socket.on('KOT_CREATED', (data: any) => {
       playKitchenChime();
       toast('🔔 New Order Ticket Fired to Kitchen!', 'info');
-      if (data && data.kots && Array.isArray(data.kots)) {
-        setKots(prev => [...data.kots, ...prev]);
-      } else if (data && data.kot) {
-        setKots(prev => [data.kot, ...prev]);
-      }
+      syncLocalKots(true);
     });
 
     return () => {
-      window.removeEventListener('kots_updated', syncLocalKots);
-      window.removeEventListener('storage', syncLocalKots);
+      window.removeEventListener('kots_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('focus', () => syncLocalKots(false));
       socket.disconnect();
     };
   }, [soundEnabled]);
 
   const updateStatus = (id: string, newStatus: KOT['status']) => {
-    setKots(prev => prev.map(k => k.id === id ? { ...k, status: newStatus } : k));
+    const updated = kots.map(k => k.id === id ? { ...k, status: newStatus } : k);
+    setKots(updated);
+    try {
+      localStorage.setItem('kds_kots', JSON.stringify(updated));
+      window.dispatchEvent(new Event('kots_updated'));
+    } catch (e) {}
     playKitchenChime();
     if (newStatus === 'READY') {
       toast(`Ticket ${id} is READY for Pickup! Server notified.`, 'success');
@@ -136,7 +141,11 @@ export default function KitchenDisplaySystem() {
   };
 
   const renderColumn = (title: string, status: KOT['status'], icon: React.ReactNode, count: number) => {
-    const columnKots = kots.filter(k => k.status === status);
+    const columnKots = kots.filter(k => 
+      status === 'PENDING' 
+        ? (k.status === 'PENDING' || (k.status as any) === 'NEW') 
+        : k.status === status
+    );
 
     return (
       <div className="flex flex-col bg-slate-100/70 rounded-2xl border border-slate-200/80 p-4 h-full">
@@ -313,7 +322,7 @@ export default function KitchenDisplaySystem() {
 
       {/* 3 Cooking Columns */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 flex-1 min-h-0">
-        {renderColumn('Pending Queue', 'PENDING', <AlertCircle className="text-blue-500 w-4 h-4" />, kots.filter(k => k.status === 'PENDING').length)}
+        {renderColumn('Pending Queue', 'PENDING', <AlertCircle className="text-blue-500 w-4 h-4" />, kots.filter(k => k.status === 'PENDING' || (k.status as any) === 'NEW').length)}
         {renderColumn('Cooking Station', 'PREPARING', <Flame className="text-amber-500 w-4 h-4" />, kots.filter(k => k.status === 'PREPARING').length)}
         {renderColumn('Ready for Waiter', 'READY', <CheckCircle className="text-emerald-500 w-4 h-4" />, kots.filter(k => k.status === 'READY').length)}
       </div>

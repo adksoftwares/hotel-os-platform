@@ -506,7 +506,8 @@ export default function RestaurantPOS() {
       type: orderType,
       server: 'Admin',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'NEW',
+      timestamp: Date.now(),
+      status: 'PENDING',
       items: orderItems.map(item => ({ name: item.name, qty: item.qty, notes: '' }))
     };
 
