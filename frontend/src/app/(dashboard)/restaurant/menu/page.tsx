@@ -105,13 +105,37 @@ export default function MenuManagement() {
     };
   }, []);
 
+  const getEmojiForDish = (name: string, category: string = ''): string => {
+    const n = (name || '').toLowerCase();
+    const c = (category || '').toLowerCase();
+    if (n.includes('rice') || n.includes('biryani') || n.includes('fried rice') || n.includes('pulao')) return '🍚';
+    if (n.includes('burger')) return '🍔';
+    if (n.includes('pizza')) return '🍕';
+    if (n.includes('salad')) return '🥗';
+    if (n.includes('soup')) return '🍲';
+    if (n.includes('pasta') || n.includes('noodle') || n.includes('spaghetti')) return '🍝';
+    if (n.includes('fish') || n.includes('salmon') || n.includes('seafood') || n.includes('crab') || n.includes('prawn')) return '🐟';
+    if (n.includes('chicken') || n.includes('meat') || n.includes('steak') || n.includes('curry') || n.includes('mutton') || n.includes('beef')) return '🍗';
+    if (n.includes('fries') || n.includes('potato') || n.includes('chip')) return '🍟';
+    if (n.includes('cake') || n.includes('dessert') || n.includes('sweet') || n.includes('ice cream') || n.includes('chocolate')) return '🍰';
+    if (n.includes('tea') || n.includes('coffee') || n.includes('espresso') || n.includes('cappuccino')) return '☕';
+    if (n.includes('juice') || n.includes('drink') || n.includes('beverage') || n.includes('coke') || n.includes('mojito') || n.includes('water') || n.includes('soda')) return '🥤';
+    if (n.includes('bread') || n.includes('roti') || n.includes('naan') || n.includes('toast')) return '🍞';
+    if (n.includes('taco') || n.includes('wrap') || n.includes('burrito')) return '🌮';
+    if (n.includes('sushi')) return '🍣';
+    if (c.includes('beverage')) return '🥤';
+    if (c.includes('dessert')) return '🍰';
+    if (c.includes('starter') || c.includes('appetizer')) return '🥗';
+    return '🍽️';
+  };
+
   const saveMenu = (newMenu: MenuItem[]) => {
     setMenu(newMenu);
     try {
       localStorage.setItem('hotel_menu_items', JSON.stringify(newMenu));
       localStorage.setItem('restaurant_menu_items', JSON.stringify(newMenu));
 
-      // Also sync to POS catalog so POS immediately reflects edits/adds
+      // Also sync to POS catalog so POS immediately reflects edits/adds with clean emojis
       const existingPos = JSON.parse(localStorage.getItem('pos_all_menu_items') || '[]');
       const categoryMap: Record<string, string> = {
         'Appetizers': 'Starters',
@@ -121,13 +145,14 @@ export default function MenuManagement() {
       };
       const syncedPos = newMenu.map(m => {
         const found = Array.isArray(existingPos) ? existingPos.find((p: any) => p.name === m.name || p.id === m.id) : null;
+        const assignedEmoji = (found?.img && !found.img.startsWith('http')) ? found.img : getEmojiForDish(m.name, m.category);
         return {
           id: m.id,
           name: m.name,
           category: categoryMap[m.category] || m.category || 'Mains',
           price: m.basePrice || (m.variants && m.variants[0]?.price) || 0,
           course: m.category === 'Appetizers' ? 'Starters' : m.category === 'Desserts' ? 'Desserts' : m.category === 'Beverages' ? 'Beverages' : 'Main Course',
-          img: m.image || found?.img || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80',
+          img: assignedEmoji,
           station: m.category === 'Beverages' ? 'Bar' : 'Kitchen'
         };
       });

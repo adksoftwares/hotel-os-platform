@@ -110,13 +110,49 @@ export default function RestaurantPOS() {
     return Array.from(new Set([...defaultCats, ...customCats]));
   }, [menuItems]);
 
+  const getEmojiForDish = (name: string, category: string = ''): string => {
+    const n = (name || '').toLowerCase();
+    const c = (category || '').toLowerCase();
+    if (n.includes('rice') || n.includes('biryani') || n.includes('fried rice') || n.includes('pulao')) return '🍚';
+    if (n.includes('burger')) return '🍔';
+    if (n.includes('pizza')) return '🍕';
+    if (n.includes('salad')) return '🥗';
+    if (n.includes('soup')) return '🍲';
+    if (n.includes('pasta') || n.includes('noodle') || n.includes('spaghetti')) return '🍝';
+    if (n.includes('fish') || n.includes('salmon') || n.includes('seafood') || n.includes('crab') || n.includes('prawn')) return '🐟';
+    if (n.includes('chicken') || n.includes('meat') || n.includes('steak') || n.includes('curry') || n.includes('mutton') || n.includes('beef')) return '🍗';
+    if (n.includes('fries') || n.includes('potato') || n.includes('chip')) return '🍟';
+    if (n.includes('cake') || n.includes('dessert') || n.includes('sweet') || n.includes('ice cream') || n.includes('chocolate')) return '🍰';
+    if (n.includes('tea') || n.includes('coffee') || n.includes('espresso') || n.includes('cappuccino')) return '☕';
+    if (n.includes('juice') || n.includes('drink') || n.includes('beverage') || n.includes('coke') || n.includes('mojito') || n.includes('water') || n.includes('soda')) return '🥤';
+    if (n.includes('bread') || n.includes('roti') || n.includes('naan') || n.includes('toast')) return '🍞';
+    if (n.includes('taco') || n.includes('wrap') || n.includes('burrito')) return '🌮';
+    if (n.includes('sushi')) return '🍣';
+    if (c.includes('beverage')) return '🥤';
+    if (c.includes('dessert')) return '🍰';
+    if (c.includes('starter') || c.includes('appetizer')) return '🥗';
+    return '🍽️';
+  };
+
   const loadAllMenuItems = () => {
     try {
       const allSaved = localStorage.getItem('pos_all_menu_items');
       if (allSaved) {
         const parsed = JSON.parse(allSaved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMenuItems(parsed);
+          // Auto-clean any items with raw URL strings so they show clean emojis instead of URL text
+          let hasDirty = false;
+          const cleaned = parsed.map((item: any) => {
+            if (!item.img || item.img.startsWith('http') || item.img.length > 10) {
+              hasDirty = true;
+              return { ...item, img: getEmojiForDish(item.name, item.category) };
+            }
+            return item;
+          });
+          if (hasDirty) {
+            localStorage.setItem('pos_all_menu_items', JSON.stringify(cleaned));
+          }
+          setMenuItems(cleaned);
           return;
         }
       }
@@ -858,7 +894,7 @@ export default function RestaurantPOS() {
                       <td className="p-3.5">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl p-2 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
-                            {food.img || '🍽️'}
+                            {food.img && !food.img.startsWith('http') ? food.img : getEmojiForDish(food.name, food.category)}
                           </span>
                           <div>
                             <div className="font-bold text-slate-900 text-sm">{food.name}</div>
@@ -1145,7 +1181,7 @@ export default function RestaurantPOS() {
                 >
                   <div>
                     <div className="flex items-start justify-between">
-                      <span className="text-2xl mb-1.5 block">{item.img}</span>
+                      <span className="text-2xl mb-1.5 block">{item.img && !item.img.startsWith('http') ? item.img : getEmojiForDish(item.name, item.category)}</span>
                       {item.dietary && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                           {item.dietary}
@@ -1679,7 +1715,7 @@ export default function RestaurantPOS() {
         <Modal isOpen={!!customizerItem} onClose={() => setCustomizerItem(null)} title={`Customize: ${customizerItem.name}`}>
           <div className="space-y-4 text-xs">
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-3xl">{customizerItem.img}</span>
+              <span className="text-3xl">{customizerItem.img && !customizerItem.img.startsWith('http') ? customizerItem.img : getEmojiForDish(customizerItem.name, customizerItem.category)}</span>
               <div>
                 <h4 className="font-bold text-slate-900 text-sm">{customizerItem.name}</h4>
                 <p className="text-slate-500">Base Price: Rs. {customizerItem.price.toFixed(2)} • {customizerItem.category}</p>
@@ -1815,7 +1851,7 @@ export default function RestaurantPOS() {
           <form onSubmit={handleSaveEditFood} className="space-y-4 text-xs">
             <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <span className="text-3xl p-2 bg-white rounded-xl shadow-2xs border border-slate-100 flex items-center justify-center">
-                {editingFood.img || '🍽️'}
+                {editingFood.img && !editingFood.img.startsWith('http') ? editingFood.img : getEmojiForDish(editingFood.name, editingFood.category)}
               </span>
               <div>
                 <p className="font-bold text-slate-800 text-sm">{editingFood.name}</p>
@@ -1970,7 +2006,7 @@ export default function RestaurantPOS() {
           <div className="space-y-4 text-xs">
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
               <span className="text-3xl p-2 bg-white rounded-xl shadow-2xs border border-rose-100 flex items-center justify-center">
-                {foodToDelete.img || '🍽️'}
+                {foodToDelete.img && !foodToDelete.img.startsWith('http') ? foodToDelete.img : getEmojiForDish(foodToDelete.name, foodToDelete.category)}
               </span>
               <div>
                 <p className="font-bold text-rose-950 text-sm">{foodToDelete.name}</p>
