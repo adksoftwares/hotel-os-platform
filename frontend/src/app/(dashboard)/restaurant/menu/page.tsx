@@ -61,6 +61,8 @@ export default function MenuManagement() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<MenuItem>>({
@@ -112,6 +114,36 @@ export default function MenuManagement() {
     } catch (e) {}
   };
 
+  const handleOpenAddModal = () => {
+    setEditingId(null);
+    setFormData({
+      name: '',
+      category: 'Main Course',
+      description: '',
+      basePrice: 0,
+      available: true,
+      variants: []
+    });
+    setVariantName("");
+    setVariantPrice("");
+    setShowModal(true);
+  };
+
+  const handleEditItem = (item: MenuItem) => {
+    setEditingId(item.id);
+    setFormData({
+      name: item.name,
+      category: item.category,
+      description: item.description,
+      basePrice: item.basePrice,
+      available: item.available,
+      variants: item.variants ? [...item.variants] : []
+    });
+    setVariantName("");
+    setVariantPrice("");
+    setShowModal(true);
+  };
+
   const handleAddVariant = () => {
     if (!variantName || !variantPrice) return;
     setFormData(prev => ({
@@ -136,17 +168,32 @@ export default function MenuManagement() {
     e.preventDefault();
     if (!formData.name?.trim()) return;
 
-    const newItem: MenuItem = {
-      id: `M-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-      name: formData.name.trim(),
-      category: formData.category || 'Main Course',
-      description: formData.description || '',
-      basePrice: Number(formData.basePrice) || 0,
-      variants: formData.variants || [],
-      available: formData.available ?? true,
-    };
-    saveMenu([...menu, newItem]);
+    if (editingId) {
+      const updated = menu.map(item => item.id === editingId ? {
+        ...item,
+        name: formData.name!.trim(),
+        category: formData.category || 'Main Course',
+        description: formData.description || '',
+        basePrice: Number(formData.basePrice) || 0,
+        variants: formData.variants || [],
+        available: formData.available ?? true,
+      } : item);
+      saveMenu(updated);
+    } else {
+      const newItem: MenuItem = {
+        id: `M-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+        name: formData.name.trim(),
+        category: formData.category || 'Main Course',
+        description: formData.description || '',
+        basePrice: Number(formData.basePrice) || 0,
+        variants: formData.variants || [],
+        available: formData.available ?? true,
+      };
+      saveMenu([...menu, newItem]);
+    }
+
     setShowModal(false);
+    setEditingId(null);
     setFormData({ name: '', category: 'Main Course', description: '', basePrice: 0, available: true, variants: [] });
   };
 
@@ -158,6 +205,7 @@ export default function MenuManagement() {
   const deleteItem = (id: string) => {
     const updated = menu.filter(item => item.id !== id);
     saveMenu(updated);
+    setItemToDelete(null);
   };
 
   const handleClearAll = () => {
@@ -201,7 +249,7 @@ export default function MenuManagement() {
           )}
           <button 
             type="button"
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenAddModal}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors text-sm"
           >
             <Plus size={18} />
@@ -224,7 +272,7 @@ export default function MenuManagement() {
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
-              onClick={() => setShowModal(true)}
+              onClick={handleOpenAddModal}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-xs"
             >
               <Plus className="w-4 h-4" />
@@ -314,7 +362,16 @@ export default function MenuManagement() {
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           type="button"
-                          onClick={() => deleteItem(item.id)}
+                          onClick={() => handleEditItem(item)}
+                          className="p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-lg hover:bg-indigo-50"
+                          title={`Edit ${item.name}`}
+                          aria-label={`Edit ${item.name}`}
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setItemToDelete(item)}
                           className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
                           title={`Delete ${item.name}`}
                           aria-label={`Delete ${item.name}`}
@@ -340,12 +397,14 @@ export default function MenuManagement() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
-            onClick={() => setShowModal(false)}
+            onClick={() => { setShowModal(false); setEditingId(null); }}
           />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200 z-10 border border-slate-100">
             <div className="flex justify-between items-center p-6 border-b border-slate-200">
-              <h2 className="text-xl font-bold text-slate-900">Add New Food Item</h2>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingId ? `Edit Food Details - ${formData.name || ''}` : 'Add New Food Item'}
+              </h2>
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="text-slate-400 hover:text-slate-600">
                 <X size={24} />
               </button>
             </div>
@@ -463,7 +522,7 @@ export default function MenuManagement() {
               <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-200">
                 <button 
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setEditingId(null); }}
                   className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
                 >
                   Cancel
@@ -473,10 +532,55 @@ export default function MenuManagement() {
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2"
                 >
                   <Check size={18} />
-                  Save Food Item
+                  {editingId ? 'Save Changes' : 'Save Food Item'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Single Item Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
+            onClick={() => setItemToDelete(null)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-sm w-full p-6 text-center z-10 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setItemToDelete(null)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 ring-8 ring-rose-50/80 shadow-sm">
+              <Trash2 className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">
+              Delete Food Item?
+            </h3>
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+              Are you sure you want to remove <span className="font-bold text-slate-800">&quot;{itemToDelete.name}&quot;</span> (Rs. {itemToDelete.basePrice.toFixed(2)}) from the food catalog?
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => deleteItem(itemToDelete.id)}
+                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
+              >
+                Yes, Delete Dish
+              </button>
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors"
+              >
+                Keep Dish
+              </button>
+            </div>
           </div>
         </div>
       )}

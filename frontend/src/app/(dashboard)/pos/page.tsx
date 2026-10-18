@@ -9,7 +9,7 @@ import {
   Minus, Plus, Edit2, Trash2, LayoutGrid, Coffee, Split, 
   CheckCircle, Clock, Users, ArrowUpRight, DollarSign, Smartphone,
   ChefHat, Sparkles, Sliders, X, Flame, ShieldAlert, Star, Check,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, List
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -67,8 +67,8 @@ export default function RestaurantPOS() {
   const { toast } = useToast();
   const isOffline = useOfflineStatus();
   
-  // View mode: Floor Plan vs Order Pad Menu
-  const [posMode, setPosMode] = useState<'floorplan' | 'menu'>('menu');
+  // View mode: Floor Plan vs Order Pad Menu vs Food List
+  const [posMode, setPosMode] = useState<'floorplan' | 'menu' | 'foodlist'>('menu');
   const [activeZone, setActiveZone] = useState<'All' | 'AC Dining' | 'Garden Patio' | 'Rooftop'>('All');
   const [tables, setTables] = useState<TableEntity[]>(initialTables);
 
@@ -92,17 +92,107 @@ export default function RestaurantPOS() {
     return Array.from(new Set([...defaultCats, ...customCats]));
   }, [menuItems]);
 
-  useEffect(() => {
+  const loadAllMenuItems = () => {
     try {
+      const allSaved = localStorage.getItem('pos_all_menu_items');
+      if (allSaved) {
+        const parsed = JSON.parse(allSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMenuItems(parsed);
+          return;
+        }
+      }
       const saved = localStorage.getItem('pos_custom_menu_items');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMenuItems([...defaultMenuItems, ...parsed]);
+          return;
         }
       }
     } catch (_) {}
+  };
+
+  useEffect(() => {
+    loadAllMenuItems();
+    const handleSync = () => loadAllMenuItems();
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('hotel_menu_changed', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('hotel_menu_changed', handleSync);
+    };
   }, []);
+
+  const saveMenuItems = (updated: MenuItemEntity[]) => {
+    setMenuItems(updated);
+    try {
+      localStorage.setItem('pos_all_menu_items', JSON.stringify(updated));
+      const customOnly = updated.filter(i => !defaultMenuItems.some(d => d.id === i.id));
+      localStorage.setItem('pos_custom_menu_items', JSON.stringify(customOnly));
+      window.dispatchEvent(new Event('hotel_menu_changed'));
+    } catch (_) {}
+  };
+
+  // Food List Filters & Editing State
+  const [foodListSearch, setFoodListSearch] = useState('');
+  const [foodListCategory, setFoodListCategory] = useState('All');
+  const [editingFood, setEditingFood] = useState<MenuItemEntity | null>(null);
+  const [foodToDelete, setFoodToDelete] = useState<MenuItemEntity | null>(null);
+
+  const filteredFoodList = useMemo(() => {
+    return menuItems.filter(item => {
+      const matchesCat = foodListCategory === 'All' || item.category === foodListCategory;
+      const matchesSearch = item.name.toLowerCase().includes(foodListSearch.toLowerCase()) ||
+        item.category.toLowerCase().includes(foodListSearch.toLowerCase()) ||
+        (item.dietary && item.dietary.toLowerCase().includes(foodListSearch.toLowerCase()));
+      return matchesCat && matchesSearch;
+    });
+  }, [menuItems, foodListCategory, foodListSearch]);
+
+  const handleStartEditFood = (food: MenuItemEntity) => {
+    setEditingFood({ ...food });
+  };
+
+  const handleSaveEditFood = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFood) return;
+    if (!editingFood.name.trim()) {
+      toast("Please enter food item name", 'error');
+      return;
+    }
+    const numPrice = Number(editingFood.price);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      toast("Please enter a valid price greater than Rs. 0", 'error');
+      return;
+    }
+
+    const updatedDish: MenuItemEntity = {
+      ...editingFood,
+      name: editingFood.name.trim(),
+      price: numPrice,
+      img: editingFood.img || '🍽️'
+    };
+
+    const updated = menuItems.map(item => item.id === editingFood.id ? updatedDish : item);
+    saveMenuItems(updated);
+    toast(`Dish "${updatedDish.name}" updated successfully!`, 'success');
+    setEditingFood(null);
+  };
+
+  const handleConfirmDeleteFood = () => {
+    if (!foodToDelete) return;
+    const deletedName = foodToDelete.name;
+    const updated = menuItems.filter(item => item.id !== foodToDelete.id);
+    saveMenuItems(updated);
+    toast(`Dish "${deletedName}" has been removed.`, 'info');
+    setFoodToDelete(null);
+  };
+
+  const handleRestoreDefaultMenu = () => {
+    saveMenuItems(defaultMenuItems);
+    toast("Restored default restaurant menu dishes!", 'success');
+  };
 
   // 1. Add New Food Item to Catalog Modal State
   const [isAddFoodModalOpen, setIsAddFoodModalOpen] = useState(false);
@@ -194,12 +284,7 @@ export default function RestaurantPOS() {
     };
 
     const updated = [...menuItems, newItem];
-    setMenuItems(updated);
-
-    try {
-      const saved = JSON.parse(localStorage.getItem('pos_custom_menu_items') || '[]');
-      localStorage.setItem('pos_custom_menu_items', JSON.stringify([...saved, newItem]));
-    } catch (_) {}
+    saveMenuItems(updated);
 
     toast(`"${newItem.name}" added to POS Menu Catalog!`, 'success');
     setIsAddFoodModalOpen(false);
@@ -428,6 +513,18 @@ export default function RestaurantPOS() {
               <LayoutGrid className="w-3.5 h-3.5" />
               <span>Table Floor Plan</span>
             </button>
+            <button
+              onClick={() => setPosMode('foodlist')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                posMode === 'foodlist' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <List className="w-3.5 h-3.5 text-blue-600" />
+              <span>Food List</span>
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">
+                {menuItems.length}
+              </span>
+            </button>
             <Link
               href="/pos/waiter"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-all"
@@ -459,9 +556,195 @@ export default function RestaurantPOS() {
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────── */}
-      {/* MODE 1: VISUAL TABLE FLOOR PLAN */}
+      {/* MODE 3: FOOD LIST VIEW (Edit & Delete Management) */}
       {/* ──────────────────────────────────────────────────────────────────────── */}
-      {posMode === 'floorplan' ? (
+      {posMode === 'foodlist' ? (
+        <div className="flex-1 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-5">
+          {/* Top Bar: Title, Search, Category Filter, and Add Dish Action */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-900 tracking-tight">Food List & Menu Catalog</h2>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/60">
+                  {filteredFoodList.length} of {menuItems.length} dishes
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                View all restaurant dishes, update details (price, course, station, tags), or delete dishes.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAddFoodModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Add New Food</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleRestoreDefaultMenu}
+                className="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition cursor-pointer"
+                title="Reset to default factory menu items"
+              >
+                Reset Default Menu
+              </button>
+            </div>
+          </div>
+
+          {/* Search & Category Filter Row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search food by name, category, or dietary tag..."
+                value={foodListSearch}
+                onChange={(e) => setFoodListSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50/50 focus:bg-white transition-all"
+              />
+              {foodListSearch && (
+                <button
+                  type="button"
+                  onClick={() => setFoodListSearch('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setFoodListCategory(c)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                    foodListCategory === c
+                      ? 'bg-slate-900 text-white shadow-2xs font-bold'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Food List Table */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50/90 border-b border-slate-200 text-slate-700">
+                  <th className="p-3.5 font-bold">Food Item</th>
+                  <th className="p-3.5 font-bold">Category</th>
+                  <th className="p-3.5 font-bold">Course</th>
+                  <th className="p-3.5 font-bold">Kitchen Station</th>
+                  <th className="p-3.5 font-bold">Price</th>
+                  <th className="p-3.5 font-bold text-center">Quick Action</th>
+                  <th className="p-3.5 font-bold text-right">Manage Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredFoodList.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-400 text-xs">
+                      No food items found matching &quot;{foodListSearch}&quot;.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredFoodList.map((food) => (
+                    <tr key={food.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl p-2 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
+                            {food.img || '🍽️'}
+                          </span>
+                          <div>
+                            <div className="font-bold text-slate-900 text-sm">{food.name}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {food.dietary && (
+                                <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                  {food.dietary}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-400">ID: {food.id}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3.5 font-semibold text-slate-700">
+                        <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-medium">
+                          {food.category}
+                        </span>
+                      </td>
+                      <td className="p-3.5">
+                        <span className={`inline-block px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                          food.course === 'STARTER' ? 'bg-amber-50 text-amber-700 border border-amber-200/80' :
+                          food.course === 'MAIN' ? 'bg-blue-50 text-blue-700 border border-blue-200/80' :
+                          food.course === 'DESSERT' ? 'bg-pink-50 text-pink-700 border border-pink-200/80' :
+                          'bg-purple-50 text-purple-700 border border-purple-200/80'
+                        }`}>
+                          {food.course}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-slate-600 font-medium">
+                        <div className="flex items-center gap-1 text-slate-700">
+                          <ChefHat className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{food.station || 'Kitchen Grill'}</span>
+                        </div>
+                      </td>
+                      <td className="p-3.5">
+                        <span className="font-bold text-slate-900 text-sm">
+                          Rs. {food.price.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddItem(food);
+                            toast(`Added "${food.name}" to Active Order Ticket!`, 'success');
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] border border-blue-200 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Add to Bill</span>
+                        </button>
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditFood(food)}
+                            className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-200 rounded-lg font-semibold transition inline-flex items-center gap-1 cursor-pointer"
+                            title={`Edit ${food.name}`}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFoodToDelete(food)}
+                            className="p-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 border border-rose-200 rounded-lg font-semibold transition inline-flex items-center gap-1 cursor-pointer"
+                            title={`Delete ${food.name}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="text-[11px]">Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : posMode === 'floorplan' ? (
         <div className="flex-1 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 overflow-y-auto space-y-6">
           {/* Zone Selector & Legend */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -817,7 +1100,7 @@ export default function RestaurantPOS() {
       {/* Split Bill Modal */}
       <Modal isOpen={showSplitBill} onClose={() => setShowSplitBill(false)} title="Split Restaurant Bill">
         <div className="space-y-4 text-xs">
-          <p className="text-slate-500">Divide order grand total (${grandTotal.toFixed(2)}) equally across guests.</p>
+          <p className="text-slate-500">Divide order grand total (Rs. {grandTotal.toFixed(2)}) equally across guests.</p>
           <div className="flex items-center gap-3">
             <span className="font-semibold">Number of Ways:</span>
             <div className="flex gap-2">
@@ -1210,6 +1493,209 @@ export default function RestaurantPOS() {
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-md shadow-blue-600/20"
               >
                 Add Customized Dish to Bill
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      {/* EDIT FOOD DETAILS MODAL */}
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      {editingFood && (
+        <Modal
+          isOpen={!!editingFood}
+          onClose={() => setEditingFood(null)}
+          title={`Edit Food Details - ${editingFood.name}`}
+        >
+          <form onSubmit={handleSaveEditFood} className="space-y-4 text-xs">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <span className="text-3xl p-2 bg-white rounded-xl shadow-2xs border border-slate-100 flex items-center justify-center">
+                {editingFood.img || '🍽️'}
+              </span>
+              <div>
+                <p className="font-bold text-slate-800 text-sm">{editingFood.name}</p>
+                <p className="text-[11px] text-slate-500">ID: {editingFood.id} • Current Price: Rs. {Number(editingFood.price).toFixed(2)}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Food / Dish Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingFood.name}
+                  onChange={(e) => setEditingFood({ ...editingFood, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Base Price (Rs.) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={editingFood.price}
+                  onChange={(e) => setEditingFood({ ...editingFood, price: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Category</label>
+                <select
+                  value={editingFood.category}
+                  onChange={(e) => setEditingFood({ ...editingFood, category: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-xs"
+                >
+                  <option value="Starters">Starters</option>
+                  <option value="Mains">Mains</option>
+                  <option value="Sides">Sides</option>
+                  <option value="Beverages">Beverages</option>
+                  <option value="Desserts">Desserts</option>
+                  <option value="Chef Specials">Chef Specials</option>
+                  {categories.filter(c => !['All', 'Starters', 'Mains', 'Sides', 'Beverages', 'Desserts', 'Chef Specials'].includes(c)).map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Meal Course</label>
+                <select
+                  value={editingFood.course}
+                  onChange={(e) => setEditingFood({ ...editingFood, course: e.target.value as any })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-xs"
+                >
+                  <option value="STARTER">Starter</option>
+                  <option value="MAIN">Main Course</option>
+                  <option value="DESSERT">Dessert</option>
+                  <option value="BEVERAGE">Beverage</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Dietary Tag</label>
+                <select
+                  value={editingFood.dietary || 'None'}
+                  onChange={(e) => setEditingFood({ ...editingFood, dietary: e.target.value === 'None' ? undefined : e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-xs"
+                >
+                  <option value="None">None</option>
+                  <option value="Veg">Vegetarian</option>
+                  <option value="Vegan">Vegan</option>
+                  <option value="GF">Gluten-Free (GF)</option>
+                  <option value="Halal">Halal</option>
+                  <option value="Chef Special">Chef Special</option>
+                  <option value="Popular">Popular</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Kitchen Station</label>
+                <select
+                  value={editingFood.station || 'Grill'}
+                  onChange={(e) => setEditingFood({ ...editingFood, station: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-xs"
+                >
+                  <option value="Grill">Grill Station</option>
+                  <option value="Fryer">Fryer Station</option>
+                  <option value="Sauté">Sauté Station</option>
+                  <option value="Salad">Salad / Pantry</option>
+                  <option value="Bar">Beverage Bar</option>
+                  <option value="Bakery">Bakery & Pastry</option>
+                  <option value="Pizza Oven">Pizza Oven</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Emoji Picker */}
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Dish Emoji Icon</label>
+              <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                {['🍽️', '🥩', '🍔', '🍕', '🥗', '🍟', '🍰', '🥤', '🥖', '🐟', '🦑', '🍸', '🍫', '☕', '🥪', '🍣', '🍜', '🍨'].map(emoji => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setEditingFood({ ...editingFood, img: emoji })}
+                    className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition cursor-pointer ${
+                      editingFood.img === emoji ? 'bg-blue-600 text-white scale-110 shadow-2xs' : 'hover:bg-slate-200'
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditingFood(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold text-slate-600 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-sm cursor-pointer"
+              >
+                Save Food Details
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      {/* DELETE FOOD CONFIRMATION MODAL */}
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+      {foodToDelete && (
+        <Modal
+          isOpen={!!foodToDelete}
+          onClose={() => setFoodToDelete(null)}
+          title="Delete Food Item"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
+              <span className="text-3xl p-2 bg-white rounded-xl shadow-2xs border border-rose-100 flex items-center justify-center">
+                {foodToDelete.img || '🍽️'}
+              </span>
+              <div>
+                <p className="font-bold text-rose-950 text-sm">{foodToDelete.name}</p>
+                <p className="text-rose-700 text-xs">
+                  Category: {foodToDelete.category} • Price: Rs. {foodToDelete.price.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-slate-600 leading-relaxed">
+              Are you sure you want to delete <span className="font-bold text-slate-900">&quot;{foodToDelete.name}&quot;</span>? 
+              This will remove the food item from your POS Menu Catalog.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setFoodToDelete(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold text-slate-600 transition cursor-pointer"
+              >
+                Keep Dish
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteFood}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Yes, Delete Dish</span>
               </button>
             </div>
           </div>

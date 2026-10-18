@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Key, CalendarCheck, BedDouble, 
   Utensils, ChefHat, Receipt, Package, Wrench, 
-  BarChart3, Settings, Building2, Smartphone, Sparkles
+  BarChart3, Settings, Building2, Smartphone, Sparkles, List
 } from 'lucide-react';
 
 interface NavGroup {
@@ -32,6 +32,7 @@ const navGroups: NavGroup[] = [
     label: "FOOD & BEVERAGE",
     items: [
       { name: "Restaurant POS", path: "/pos", icon: Utensils },
+      { name: "Food List & Menu", path: "/restaurant/menu", icon: List },
       { name: "Kitchen KDS", path: "/kitchen", icon: ChefHat },
     ],
   },
