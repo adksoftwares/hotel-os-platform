@@ -80,9 +80,10 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
       const tableStartY = currentY;
 
       const tableData: any[] = [];
-      const itemsByCompany = invoice.items.reduce((acc: any, item: any) => {
-        if (!acc[item.companyName]) acc[item.companyName] = [];
-        acc[item.companyName].push(item);
+      const itemsByCompany = (invoice?.items || []).reduce((acc: any, item: any) => {
+        const comp = item.companyName || 'Restaurant Order';
+        if (!acc[comp]) acc[comp] = [];
+        acc[comp].push(item);
         return acc;
       }, {});
 
@@ -91,15 +92,19 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
           { content: company, colSpan: 4, styles: { fillColor: [240, 240, 240], fontStyle: 'bold', textColor: [0, 0, 0], cellPadding: 1 } }
         ]);
         itemsByCompany[company].forEach((item: any) => {
-          let name = item.productName;
+          let name = item.productName || item.name || 'Item';
           if (item.weight) name += ` (${item.weight})`;
           if (item.code) name += `\nCode: ${item.code}`;
-          if (item.discount > 0) name += `\nDis: -Rs.${item.discount.toFixed(2)}`;
+          const dis = Number(item.discount || 0);
+          if (dis > 0) name += `\nDis: -Rs.${dis.toFixed(2)}`;
+          const unitPrice = Number(item.unitPrice ?? item.price ?? 0);
+          const quantity = Number(item.quantity ?? item.qty ?? 1);
+          const finalTotal = Number(item.finalTotal ?? item.total ?? (unitPrice * quantity));
           tableData.push([
             name,
-            item.quantity.toString(),
-            item.unitPrice.toFixed(2),
-            item.finalTotal.toFixed(2)
+            quantity.toString(),
+            unitPrice.toFixed(2),
+            finalTotal.toFixed(2)
           ]);
         });
       });
@@ -124,17 +129,17 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
       
       doc.setFont("helvetica", "normal");
       doc.text("Subtotal:", margin, finalY);
-      doc.text(`Rs. ${invoice.subtotal.toFixed(2)}`, width - margin, finalY, { align: "right" });
+      doc.text(`Rs. ${Number(invoice.subtotal || 0).toFixed(2)}`, width - margin, finalY, { align: "right" });
       finalY += 4;
       
       doc.text("Total Discount:", margin, finalY);
-      doc.text(`- Rs. ${invoice.totalDiscount.toFixed(2)}`, width - margin, finalY, { align: "right" });
+      doc.text(`- Rs. ${Number(invoice.totalDiscount ?? invoice.discount ?? 0).toFixed(2)}`, width - margin, finalY, { align: "right" });
       finalY += 5;
       
       doc.setFont("helvetica", "bold");
       doc.setFontSize(normalSize + 1);
       doc.text("GRAND TOTAL:", margin, finalY);
-      doc.text(`Rs. ${invoice.grandTotal.toFixed(2)}`, width - margin, finalY, { align: "right" });
+      doc.text(`Rs. ${Number(invoice.grandTotal || 0).toFixed(2)}`, width - margin, finalY, { align: "right" });
       finalY += 6;
       
       doc.setFontSize(smallSize);
@@ -330,9 +335,10 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
                   </thead>
                   <tbody>
                     {Object.entries(
-                      invoice.items?.reduce((acc: any, item: any) => {
-                        if (!acc[item.companyName]) acc[item.companyName] = [];
-                        acc[item.companyName].push(item);
+                      (invoice?.items || []).reduce((acc: any, item: any) => {
+                        const comp = item.companyName || 'Restaurant Order';
+                        if (!acc[comp]) acc[comp] = [];
+                        acc[comp].push(item);
                         return acc;
                       }, {}) || {}
                     ).map(([company, items]: [string, any]) => (
@@ -342,22 +348,28 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
                             {company}
                           </td>
                         </tr>
-                        {items.map((item: any) => (
-                          <tr key={item.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                            <td style={{ padding: '2px 2px 2px 0', verticalAlign: 'top', wordBreak: 'break-word' }}>
-                              <div style={{ fontWeight: '600' }}>{item.productName}{item.weight ? ` (${item.weight})` : ''}</div>
-                              {item.code && (
-                                <div style={{ fontSize: fSize.tiny, color: '#333' }}>Code: {item.code}</div>
-                              )}
-                              {item.discount > 0 && (
-                                <div style={{ fontSize: fSize.tiny, color: '#555' }}>Dis: -Rs.{item.discount.toFixed(2)}</div>
-                              )}
-                            </td>
-                            <td style={{ padding: '2px 1px', textAlign: 'center', verticalAlign: 'top' }}>{item.quantity}</td>
-                            <td style={{ padding: '2px 1px', textAlign: 'right', verticalAlign: 'top' }}>{item.unitPrice.toFixed(2)}</td>
-                            <td style={{ padding: '2px 0 2px 1px', textAlign: 'right', verticalAlign: 'top', fontWeight: '600' }}>{item.finalTotal.toFixed(2)}</td>
-                          </tr>
-                        ))}
+                        {items.map((item: any, idx: number) => {
+                          const unitPrice = Number(item.unitPrice ?? item.price ?? 0);
+                          const quantity = Number(item.quantity ?? item.qty ?? 1);
+                          const finalTotal = Number(item.finalTotal ?? item.total ?? (unitPrice * quantity));
+                          const discount = Number(item.discount || 0);
+                          return (
+                            <tr key={item.id || idx} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                              <td style={{ padding: '2px 2px 2px 0', verticalAlign: 'top', wordBreak: 'break-word' }}>
+                                <div style={{ fontWeight: '600' }}>{item.productName || item.name || 'Item'}{item.weight ? ` (${item.weight})` : ''}</div>
+                                {item.code && (
+                                  <div style={{ fontSize: fSize.tiny, color: '#333' }}>Code: {item.code}</div>
+                                )}
+                                {discount > 0 && (
+                                  <div style={{ fontSize: fSize.tiny, color: '#555' }}>Dis: -Rs.{discount.toFixed(2)}</div>
+                                )}
+                              </td>
+                              <td style={{ padding: '2px 1px', textAlign: 'center', verticalAlign: 'top' }}>{quantity}</td>
+                              <td style={{ padding: '2px 1px', textAlign: 'right', verticalAlign: 'top' }}>{unitPrice.toFixed(2)}</td>
+                              <td style={{ padding: '2px 0 2px 1px', textAlign: 'right', verticalAlign: 'top', fontWeight: '600' }}>{finalTotal.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })}
                       </React.Fragment>
                     ))}
                   </tbody>
@@ -368,15 +380,15 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
               <div style={{ borderTop: '1px dashed #000', paddingTop: '2mm', fontSize: fSize.small, lineHeight: '1.6' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Subtotal:</span>
-                  <span>Rs. {invoice.subtotal.toFixed(2)}</span>
+                  <span>Rs. {Number(invoice?.subtotal || 0).toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Total Discount:</span>
-                  <span>- Rs. {invoice.totalDiscount.toFixed(2)}</span>
+                  <span>- Rs. {Number(invoice?.totalDiscount ?? invoice?.discount ?? 0).toFixed(2)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: fSize.base, borderTop: '1px solid #ccc', paddingTop: '2px', marginTop: '2px' }}>
                   <span>GRAND TOTAL:</span>
-                  <span>Rs. {invoice.grandTotal.toFixed(2)}</span>
+                  <span>Rs. {Number(invoice?.grandTotal || 0).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -384,27 +396,27 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
               <div style={{ borderTop: '1px dashed #000', paddingTop: '2mm', marginTop: '2mm', fontSize: fSize.small, lineHeight: '1.6' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Payment Method:</span>
-                  <span style={{ fontWeight: 'bold' }}>{invoice.paymentMethod}</span>
+                  <span style={{ fontWeight: 'bold' }}>{invoice?.paymentMethod || 'PAID'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Payment Status:</span>
-                  <span style={{ fontWeight: 'bold' }}>{invoice.status || 'PAID'}</span>
+                  <span style={{ fontWeight: 'bold' }}>{invoice?.status || 'PAID'}</span>
                 </div>
-                {invoice.paymentMethod === 'CASH' && (
+                {(invoice?.paymentMethod === 'CASH' || invoice?.amountReceived) && (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>Amount Received:</span>
-                      <span>Rs. {invoice.amountReceived?.toFixed(2) || '0.00'}</span>
+                      <span>Rs. {Number(invoice?.amountReceived || invoice?.grandTotal || 0).toFixed(2)}</span>
                     </div>
-                    {invoice.amountReceived >= invoice.grandTotal ? (
+                    {Number(invoice?.amountReceived || 0) >= Number(invoice?.grandTotal || 0) ? (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                         <span>Change / Refund Due:</span>
-                        <span>Rs. {(invoice.amountReceived - invoice.grandTotal).toFixed(2)}</span>
+                        <span>Rs. {Math.max(0, Number(invoice?.amountReceived || invoice?.grandTotal || 0) - Number(invoice?.grandTotal || 0)).toFixed(2)}</span>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                         <span>Balance Due:</span>
-                        <span>Rs. {invoice.balance?.toFixed(2) || '0.00'}</span>
+                        <span>Rs. {Number(invoice?.balance || 0).toFixed(2)}</span>
                       </div>
                     )}
                   </>

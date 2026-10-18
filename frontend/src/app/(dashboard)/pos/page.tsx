@@ -539,20 +539,36 @@ export default function RestaurantPOS() {
   const grandTotal = postDiscountTotal + tax;
 
   const mockInvoice = {
-    invoiceNumber: 'ORD-2091',
+    invoiceNumber: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
     createdAt: new Date().toISOString(),
-    paymentMethod: 'PENDING',
+    paymentMethod: 'CASH',
+    status: 'PAID',
     tableOrRoom: tableOrRoom,
-    items: orderItems.map(item => ({
-      name: item.name,
-      qty: item.qty,
-      price: item.price,
-      total: calculateItemTotal(item),
-    })),
+    items: orderItems.map((item, idx) => {
+      const itemPrice = Number(item.price) || 0;
+      const itemQty = Number(item.qty) || 1;
+      const itemTotal = calculateItemTotal(item);
+      return {
+        id: item.id || `item-${idx}`,
+        name: item.name,
+        productName: item.name,
+        qty: itemQty,
+        quantity: itemQty,
+        price: itemPrice,
+        unitPrice: itemPrice,
+        total: itemTotal,
+        finalTotal: itemTotal,
+        discount: 0,
+        companyName: 'Restaurant Order',
+      };
+    }),
     subtotal: subtotal,
     discount: totalOrderDiscount,
+    totalDiscount: totalOrderDiscount,
     tax: tax,
     grandTotal: grandTotal,
+    amountReceived: grandTotal,
+    balance: 0,
   };
 
   const handleSelectTable = (tbl: TableEntity) => {
