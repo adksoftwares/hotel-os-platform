@@ -84,12 +84,12 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
     const tableData = invoice.items.map(item => [
       item.date,
       item.description,
-      `LKR ${item.amount.toFixed(2)}`
+      `Rs. ${item.amount.toFixed(2)}`
     ]);
 
     autoTable(doc, {
       startY: 85,
-      head: [['Date', 'Description of Services', 'Amount (LKR)']],
+      head: [['Date', 'Description of Services', 'Amount (Rs.)']],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -102,26 +102,26 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
     // Totals summary
     doc.setFont('helvetica', 'normal');
     doc.text('Subtotal:', 140, finalY + 10);
-    doc.text(`LKR ${invoice.subtotal.toFixed(2)}`, 190, finalY + 10, { align: 'right' });
+    doc.text(`Rs. ${invoice.subtotal.toFixed(2)}`, 190, finalY + 10, { align: 'right' });
 
     doc.text('Occupancy & Service Tax (12%):', 140, finalY + 16);
-    doc.text(`LKR ${invoice.tax.toFixed(2)}`, 190, finalY + 16, { align: 'right' });
+    doc.text(`Rs. ${invoice.tax.toFixed(2)}`, 190, finalY + 16, { align: 'right' });
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.text('Total Invoice Amount:', 140, finalY + 24);
-    doc.text(`LKR ${invoice.grandTotal.toFixed(2)}`, 190, finalY + 24, { align: 'right' });
+    doc.text(`Rs. ${invoice.grandTotal.toFixed(2)}`, 190, finalY + 24, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(16, 185, 129);
     doc.text(`Payment Settled (${invoice.paymentMethod}):`, 140, finalY + 30);
-    doc.text(`-LKR ${invoice.paidAmount.toFixed(2)}`, 190, finalY + 30, { align: 'right' });
+    doc.text(`-Rs. ${invoice.paidAmount.toFixed(2)}`, 190, finalY + 30, { align: 'right' });
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 41, 59);
     doc.text('Balance Due:', 140, finalY + 37);
-    doc.text(`LKR ${invoice.balanceDue.toFixed(2)}`, 190, finalY + 37, { align: 'right' });
+    doc.text(`Rs. ${invoice.balanceDue.toFixed(2)}`, 190, finalY + 37, { align: 'right' });
 
     // Footer signature & note
     doc.setFont('helvetica', 'italic');
@@ -209,7 +209,7 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
               <tr className="border-b-2 border-slate-900 text-[11px] font-bold uppercase text-slate-600">
                 <th className="py-2.5">Date</th>
                 <th className="py-2.5">Description of Charges</th>
-                <th className="py-2.5 text-right">Amount (LKR)</th>
+                <th className="py-2.5 text-right">Amount (Rs.)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -217,7 +217,7 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
                 <tr key={idx} className="hover:bg-slate-50/50">
                   <td className="py-3 font-mono text-slate-500">{item.date}</td>
                   <td className="py-3 font-medium text-slate-800">{item.description}</td>
-                  <td className="py-3 text-right font-bold text-slate-900">LKR {item.amount.toFixed(2)}</td>
+                  <td className="py-3 text-right font-bold text-slate-900">Rs. {item.amount.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -228,23 +228,23 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
             <div className="w-64 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal:</span>
-                <span className="font-bold text-slate-900">LKR {invoice.subtotal.toFixed(2)}</span>
+                <span className="font-bold text-slate-900">Rs. {invoice.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Occupancy Tax (12%):</span>
-                <span className="font-bold text-slate-900">LKR {invoice.tax.toFixed(2)}</span>
+                <span className="font-bold text-slate-900">Rs. {invoice.tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
                 <span>Total Folio:</span>
-                <span className="text-blue-600">LKR {invoice.grandTotal.toFixed(2)}</span>
+                <span className="text-blue-600">Rs. {invoice.grandTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-emerald-600 font-medium">
                 <span>Paid ({invoice.paymentMethod}):</span>
-                <span>-LKR {invoice.paidAmount.toFixed(2)}</span>
+                <span>-Rs. {invoice.paidAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100">
                 <span>Balance Due:</span>
-                <span>LKR {invoice.balanceDue.toFixed(2)}</span>
+                <span>Rs. {invoice.balanceDue.toFixed(2)}</span>
               </div>
             </div>
           </div>

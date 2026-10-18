@@ -21,7 +21,7 @@ async function main() {
     data: {
       firstName: 'Super',
       lastName: 'Admin',
-      email: 'admin@hotel.com',
+      email: 'super_admin@gmail.com',
       passwordHash: passwordHash,
       role: 'SUPER_ADMIN',
       propertyId: property.id

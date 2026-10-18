@@ -160,7 +160,7 @@ export default function RestaurantPOS() {
     }
     const numPrice = parseFloat(newFood.price);
     if (isNaN(numPrice) || numPrice <= 0) {
-      toast("Please enter a valid price greater than LKR 0", 'error');
+      toast("Please enter a valid price greater than Rs. 0", 'error');
       return;
     }
 
@@ -196,7 +196,7 @@ export default function RestaurantPOS() {
     }
     const numPrice = parseFloat(openFood.price);
     if (isNaN(numPrice) || numPrice <= 0) {
-      toast("Please enter a valid price greater than LKR 0", 'error');
+      toast("Please enter a valid price greater than Rs. 0", 'error');
       return;
     }
 
@@ -214,7 +214,7 @@ export default function RestaurantPOS() {
     };
 
     setOrderItems(prev => [...prev, customOrderItem]);
-    toast(`Special order "${customOrderItem.name}" (LKR ${numPrice.toFixed(2)}) added to ticket!`, 'success');
+    toast(`Special order "${customOrderItem.name}" (Rs. ${numPrice.toFixed(2)}) added to ticket!`, 'success');
     setIsOpenFoodModalOpen(false);
     setOpenFood({ name: '', price: '', course: 'MAIN', notes: '' });
   };
@@ -254,7 +254,7 @@ export default function RestaurantPOS() {
     };
 
     setOrderItems(prev => [...prev, customizedItem]);
-    toast(`Customized ${customizerItem.name} added (LKR ${finalPrice.toFixed(2)})`, 'success');
+    toast(`Customized ${customizerItem.name} added (Rs. ${finalPrice.toFixed(2)})`, 'success');
     setCustomizerItem(null);
   };
 
@@ -381,7 +381,7 @@ export default function RestaurantPOS() {
 
   const handleTransferToRoom = () => {
     setShowRoomChargeModal(false);
-    toast(`LKR ${grandTotal.toFixed(2)} charged to Room ${selectedRoomNumber} Folio!`, 'success');
+    toast(`Rs. ${grandTotal.toFixed(2)} charged to Room ${selectedRoomNumber} Folio!`, 'success');
     setOrderItems([]);
   };
 
@@ -521,7 +521,7 @@ export default function RestaurantPOS() {
                           <Clock className="w-3.5 h-3.5" />
                           <span>{tbl.seatedMinutes}m</span>
                         </div>
-                        <span className="font-bold text-slate-900 text-sm">LKR {tbl.currentTotal.toFixed(2)}</span>
+                        <span className="font-bold text-slate-900 text-sm">Rs. {tbl.currentTotal.toFixed(2)}</span>
                       </>
                     ) : (
                       <span className="text-emerald-600 font-medium text-xs">Click to Seat & Order →</span>
@@ -613,7 +613,7 @@ export default function RestaurantPOS() {
                     <span className="text-[10px] text-slate-400">{item.category}</span>
                   </div>
                   <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between">
-                    <span className="font-bold text-slate-900 text-xs">LKR {item.price.toFixed(2)}</span>
+                    <span className="font-bold text-slate-900 text-xs">Rs. {item.price.toFixed(2)}</span>
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={(e) => {
@@ -697,7 +697,7 @@ export default function RestaurantPOS() {
                           Note: {item.notes}
                         </p>
                       )}
-                      <span className="text-[11px] text-slate-400">LKR {item.price.toFixed(2)} each</span>
+                      <span className="text-[11px] text-slate-400">Rs. {item.price.toFixed(2)} each</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -716,9 +716,9 @@ export default function RestaurantPOS() {
                       </button>
                     </div>
 
-                    <div className="text-right w-20 mt-0.5">
+                    <div className="text-right w-16 mt-0.5">
                       <span className="font-bold text-slate-800 text-xs">
-                        LKR {calculateItemTotal(item).toFixed(2)}
+                        Rs. {calculateItemTotal(item).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -730,15 +730,15 @@ export default function RestaurantPOS() {
             <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2 text-xs">
               <div className="flex justify-between text-slate-500">
                 <span>Subtotal:</span>
-                <span className="font-semibold text-slate-800">LKR {subtotal.toFixed(2)}</span>
+                <span className="font-semibold text-slate-800">Rs. {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-500">
                 <span>Tax (10%):</span>
-                <span className="font-semibold text-slate-800">LKR {tax.toFixed(2)}</span>
+                <span className="font-semibold text-slate-800">Rs. {tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
                 <span>Total Due:</span>
-                <span className="text-blue-600 text-base">LKR {grandTotal.toFixed(2)}</span>
+                <span className="text-blue-600 text-base">Rs. {grandTotal.toFixed(2)}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2">
@@ -766,7 +766,7 @@ export default function RestaurantPOS() {
       {/* Split Bill Modal */}
       <Modal isOpen={showSplitBill} onClose={() => setShowSplitBill(false)} title="Split Restaurant Bill">
         <div className="space-y-4 text-xs">
-          <p className="text-slate-500">Divide order grand total (LKR {grandTotal.toFixed(2)}) equally across guests.</p>
+          <p className="text-slate-500">Divide order grand total (${grandTotal.toFixed(2)}) equally across guests.</p>
           <div className="flex items-center gap-3">
             <span className="font-semibold">Number of Ways:</span>
             <div className="flex gap-2">
@@ -783,7 +783,7 @@ export default function RestaurantPOS() {
           </div>
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-1">
             <p className="text-slate-500">Each Guest Pays:</p>
-            <p className="text-2xl font-bold text-blue-600">LKR {(grandTotal / splitCount).toFixed(2)}</p>
+            <p className="text-2xl font-bold text-blue-600">Rs. {(grandTotal / splitCount).toFixed(2)}</p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setShowSplitBill(false)} className="px-4 py-2 bg-slate-100 rounded-xl font-semibold">Close</button>
@@ -811,7 +811,7 @@ export default function RestaurantPOS() {
           </div>
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 flex justify-between font-bold">
             <span>Charge Amount:</span>
-            <span>LKR {grandTotal.toFixed(2)}</span>
+            <span>Rs. {grandTotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setShowRoomChargeModal(false)} className="px-4 py-2 bg-slate-100 rounded-xl font-semibold">Cancel</button>
@@ -856,7 +856,7 @@ export default function RestaurantPOS() {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Selling Price (LKR) *</label>
+              <label className="block font-semibold text-slate-700 mb-1">Selling Price (Rs.) *</label>
               <input
                 required
                 type="number"
@@ -978,7 +978,7 @@ export default function RestaurantPOS() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Custom Price (LKR) *</label>
+              <label className="block font-semibold text-slate-700 mb-1">Custom Price (Rs.) *</label>
               <input
                 required
                 type="number"
@@ -1044,7 +1044,7 @@ export default function RestaurantPOS() {
               <span className="text-3xl">{customizerItem.img}</span>
               <div>
                 <h4 className="font-bold text-slate-900 text-sm">{customizerItem.name}</h4>
-                <p className="text-slate-500">Base Price: LKR {customizerItem.price.toFixed(2)} • {customizerItem.category}</p>
+                <p className="text-slate-500">Base Price: Rs. {customizerItem.price.toFixed(2)} • {customizerItem.category}</p>
               </div>
             </div>
 
@@ -1065,7 +1065,7 @@ export default function RestaurantPOS() {
                   >
                     <div>{sz}</div>
                     <div className="text-[10px] font-normal opacity-80">
-                      {sz === 'Small' ? '-LKR 300' : sz === 'Large' ? '+LKR 500' : 'Included'}
+                      {sz === 'Small' ? '-Rs. 3.00' : sz === 'Large' ? '+Rs. 5.00' : 'Included'}
                     </div>
                   </button>
                 ))}
@@ -1077,12 +1077,12 @@ export default function RestaurantPOS() {
               <label className="block font-semibold text-slate-700 mb-1.5">Gourmet Add-ons & Modifiers</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  'Extra Melted Cheese (+LKR 250)',
-                  'Crispy Smoked Bacon (+LKR 300)',
-                  'Garlic Mushrooms (+LKR 350)',
-                  'Fresh Hass Avocado (+LKR 250)',
-                  'Grilled Jumbo Prawns (+LKR 600)',
-                  'Truffle Mayo Dip (+LKR 200)'
+                  'Extra Melted Cheese (+Rs. 2.50)',
+                  'Crispy Smoked Bacon (+Rs. 3.00)',
+                  'Garlic Mushrooms (+Rs. 3.50)',
+                  'Fresh Hass Avocado (+Rs. 2.50)',
+                  'Grilled Jumbo Prawns (+Rs. 6.00)',
+                  'Truffle Mayo Dip (+Rs. 2.00)'
                 ].map(addon => {
                   const isChecked = customizerAddons.includes(addon);
                   return (

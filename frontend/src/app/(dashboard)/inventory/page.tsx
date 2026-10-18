@@ -174,7 +174,7 @@ export default function InventoryDashboard() {
                   </td>
                   <td className="text-slate-500 text-xs">{item.location}</td>
                   <td className="text-right font-medium text-slate-700">
-                    ${item.unitCost.toFixed(2)}
+                    Rs. {item.unitCost.toFixed(2)}
                   </td>
                   <td className="text-right">
                     <span className="font-bold text-slate-900 text-sm">

@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 import { 
   Users, BedDouble, Key, LogOut, CheckCircle2, 
   Utensils, ChefHat, Clock, AlertTriangle, RefreshCw, 
-  DollarSign, CreditCard, Receipt, Wrench, Sparkles, 
+  IndianRupee, CreditCard, Receipt, Wrench, Sparkles, 
   ArrowUpRight, Plus, ExternalLink, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
@@ -447,12 +447,12 @@ export default function Dashboard() {
               <div>
                 <span className="text-xs font-medium text-slate-500 block">Today's Settled Revenue</span>
                 <span className="text-xl font-bold text-slate-900 block mt-0.5">
-                  ${displayData.financial.todayRevenue.toFixed(2)}
+                  Rs. {displayData.financial.todayRevenue.toFixed(2)}
                 </span>
                 <span className="text-[11px] text-slate-400">Rooms + POS + Services</span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                <DollarSign className="w-5 h-5" />
+                <IndianRupee className="w-5 h-5" />
               </div>
             </div>
 
@@ -460,7 +460,7 @@ export default function Dashboard() {
               <div>
                 <span className="text-xs font-medium text-slate-500 block">Collected Payments</span>
                 <span className="text-xl font-bold text-slate-900 block mt-0.5">
-                  ${displayData.financial.todayPayments.toFixed(2)}
+                  Rs. {displayData.financial.todayPayments.toFixed(2)}
                 </span>
                 <span className="text-[11px] text-emerald-700">Cash, Cards & Bank Transfers</span>
               </div>
@@ -473,7 +473,7 @@ export default function Dashboard() {
               <div>
                 <span className="text-xs font-medium text-slate-500 block">Outstanding Guest Balance</span>
                 <span className="text-xl font-bold text-rose-700 block mt-0.5">
-                  ${displayData.financial.outstanding.toFixed(2)}
+                  Rs. {displayData.financial.outstanding.toFixed(2)}
                 </span>
                 <span className="text-[11px] text-slate-400">Due at checkout</span>
               </div>

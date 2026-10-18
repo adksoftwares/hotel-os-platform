@@ -76,7 +76,7 @@ export default function DailyRevenueReport() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Gross Total Receipts</span>
-          <p className="text-3xl font-black text-slate-900 mt-1">LKR {totalGross.toFixed(2)}</p>
+          <p className="text-3xl font-black text-slate-900 mt-1">Rs. {totalGross.toFixed(2)}</p>
           <span className="text-emerald-600 text-xs font-bold flex items-center gap-1 mt-1">
             <TrendingUp className="w-3.5 h-3.5" /> +18.5% over daily target
           </span>
@@ -84,13 +84,13 @@ export default function DailyRevenueReport() {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Net Operating Revenue</span>
-          <p className="text-3xl font-black text-emerald-600 mt-1">LKR {netRevenue.toFixed(2)}</p>
+          <p className="text-3xl font-black text-emerald-600 mt-1">Rs. {netRevenue.toFixed(2)}</p>
           <span className="text-xs text-slate-400 mt-1 block">Excluding occupancy taxes</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Sales & VAT Tax Liability</span>
-          <p className="text-3xl font-black text-indigo-600 mt-1">LKR {taxCollected.toFixed(2)}</p>
+          <p className="text-3xl font-black text-indigo-600 mt-1">Rs. {taxCollected.toFixed(2)}</p>
           <span className="text-xs text-slate-400 mt-1 block">12% blended state/local tax</span>
         </div>
       </div>
@@ -121,7 +121,7 @@ export default function DailyRevenueReport() {
                   <Icon className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-800">LKR {d.amount.toFixed(2)}</p>
+                  <p className="text-xs font-bold text-slate-800">Rs. {d.amount.toFixed(2)}</p>
                   <span className="text-[11px] text-slate-400">{d.dept} ({d.percentage}%)</span>
                 </div>
               </div>
@@ -150,7 +150,7 @@ export default function DailyRevenueReport() {
                 <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
                   <td className="p-4 font-bold text-slate-900">{p.method}</td>
                   <td className="p-4 text-slate-600">{p.count} Transactions</td>
-                  <td className="p-4 text-right font-black text-slate-900 text-sm">LKR {p.amount.toFixed(2)}</td>
+                  <td className="p-4 text-right font-black text-slate-900 text-sm">Rs. {p.amount.toFixed(2)}</td>
                   <td className="p-4 text-right">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                       BALANCED (0 VARIANCE)

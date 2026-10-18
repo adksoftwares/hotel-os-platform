@@ -387,7 +387,7 @@ export default function WaiterHandheldPOS() {
                 </div>
                 <div className="mt-2.5 flex items-center justify-between">
                   <span className="text-sm font-bold text-emerald-400">
-                    LKR {item.price.toFixed(2)}
+                    Rs. {item.price.toFixed(2)}
                   </span>
                   <span className="w-6 h-6 rounded-lg bg-blue-600/30 group-hover:bg-blue-600 text-blue-300 group-hover:text-white flex items-center justify-center transition">
                     <Plus className="w-3.5 h-3.5" />
@@ -445,7 +445,7 @@ export default function WaiterHandheldPOS() {
                         )}
                       </div>
                       <div className="text-xs text-slate-400 mt-0.5">
-                        LKR {item.price.toFixed(2)} × {item.qty} = LKR {(item.price * item.qty).toFixed(2)}
+                        Rs. {item.price.toFixed(2)} × {item.qty} = Rs. {(item.price * item.qty).toFixed(2)}
                       </div>
                     </div>
 
@@ -517,15 +517,15 @@ export default function WaiterHandheldPOS() {
           <div className="pt-3 border-t border-slate-800 space-y-1.5 text-xs">
             <div className="flex justify-between text-slate-400">
               <span>Subtotal</span>
-              <span className="font-semibold text-slate-200">LKR {subtotal.toFixed(2)}</span>
+              <span className="font-semibold text-slate-200">Rs. {subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-slate-400">
               <span>Tax (10%)</span>
-              <span className="font-semibold text-slate-200">LKR {tax.toFixed(2)}</span>
+              <span className="font-semibold text-slate-200">Rs. {tax.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-base font-bold text-white pt-1 border-t border-slate-800/80">
               <span>Total Bill</span>
-              <span className="text-emerald-400">LKR {total.toFixed(2)}</span>
+              <span className="text-emerald-400">Rs. {total.toFixed(2)}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2">

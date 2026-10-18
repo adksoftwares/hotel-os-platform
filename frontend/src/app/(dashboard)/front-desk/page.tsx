@@ -366,11 +366,11 @@ export default function FrontDesk() {
                     </div>
                     <div className="flex justify-between">
                       <span>Total Room Revenue to Post:</span>
-                      <span className="font-bold text-emerald-600">+LKR 2,840.00</span>
+                      <span className="font-bold text-emerald-600">+Rs. 2,840.00</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Estimated Applicable Tax (12%):</span>
-                      <span className="font-bold text-slate-700">+LKR 340.80</span>
+                      <span className="font-bold text-slate-700">+Rs. 340.80</span>
                     </div>
                   </div>
                 </div>
@@ -381,8 +381,8 @@ export default function FrontDesk() {
                   <h4 className="font-bold text-slate-800 text-sm">Step 3: Cashier Drawer Reconciliation</h4>
                   <p className="text-slate-500">Balancing physical cash drawers against POS ledger settlements.</p>
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 space-y-1">
-                    <p className="font-bold">Drawer 1 (Front Desk): Balanced (LKR 450.00)</p>
-                    <p className="font-bold">Drawer 2 (Restaurant POS): Balanced (LKR 1,120.00)</p>
+                    <p className="font-bold">Drawer 1 (Front Desk): Balanced (Rs. 450.00)</p>
+                    <p className="font-bold">Drawer 2 (Restaurant POS): Balanced (Rs. 1,120.00)</p>
                     <p className="text-xs text-blue-700">Zero variance detected across all registers.</p>
                   </div>
                 </div>

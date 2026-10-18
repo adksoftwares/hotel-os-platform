@@ -4,7 +4,7 @@ import { Modal } from '@/components/ui/Modal';
 import { A4TaxInvoiceModal } from '@/components/ui/A4TaxInvoiceModal';
 import { CashierShiftModal } from '@/components/ui/CashierShiftModal';
 import { 
-  CreditCard, DollarSign, Receipt, Printer, Plus, 
+  CreditCard, Banknote, Receipt, Printer, Plus, 
   RotateCcw, CheckCircle2, ShieldCheck, FileText, Search,
   Globe, Lock
 } from 'lucide-react';
@@ -28,11 +28,11 @@ interface FolioItem {
 const initialFolios: FolioItem[] = [];
 
 const CURRENCIES = [
-  { code: 'LKR', symbol: 'LKR ', rate: 1.0, label: 'LKR (Rs)' },
+  { code: 'LKR', symbol: 'Rs. ', rate: 1.0, label: 'LKR (Rs.)' },
+  { code: 'INR', symbol: 'Rs. ', rate: 1.0, label: 'INR (Rs.)' },
   { code: 'USD', symbol: '$', rate: 0.0033, label: 'USD ($)' },
-  { code: 'EUR', symbol: '€', rate: 0.0031, label: 'EUR (€)' },
+  { code: 'EUR', symbol: '€', rate: 0.0030, label: 'EUR (€)' },
   { code: 'GBP', symbol: '£', rate: 0.0026, label: 'GBP (£)' },
-  { code: 'INR', symbol: '₹', rate: 0.28, label: 'INR (₹)' },
   { code: 'AED', symbol: 'AED ', rate: 0.012, label: 'AED (د.إ)' },
 ];
 
@@ -343,7 +343,7 @@ export default function BillingDashboard() {
                       onClick={() => handleSettle('Cash')} 
                       className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      <DollarSign className="w-3.5 h-3.5" />
+                      <Banknote className="w-3.5 h-3.5" />
                       <span>Settle Cash</span>
                     </button>
                   </div>
