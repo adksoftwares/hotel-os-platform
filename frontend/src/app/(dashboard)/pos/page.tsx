@@ -404,7 +404,7 @@ export default function RestaurantPOS() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6.75rem)] gap-3.5">
+    <div className="flex flex-col gap-4 pb-6">
       {/* Top POS Header Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
         <div className="flex items-center gap-4">
@@ -553,9 +553,9 @@ export default function RestaurantPOS() {
         /* ──────────────────────────────────────────────────────────────────────── */
         /* MODE 2: ORDER PAD & MENU VIEW */
         /* ──────────────────────────────────────────────────────────────────────── */
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
           {/* Menu Items Left 2 Columns */}
-          <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden min-h-[540px] lg:h-[calc(100vh-14rem)] lg:min-h-[580px]">
             {/* Search & Category Pills */}
             <div className="p-4 border-b border-slate-100 space-y-3">
               {/* Row 1: Search and Action Buttons */}
@@ -687,9 +687,9 @@ export default function RestaurantPOS() {
           </div>
 
           {/* Right Ticket Summary */}
-          <div className="flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden min-h-[540px] lg:h-[calc(100vh-14rem)] lg:min-h-[580px]">
             {/* Header */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+            <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between shrink-0">
               <div>
                 <h2 className="font-bold text-slate-800 text-sm">Active Order Ticket</h2>
                 <span className="text-[11px] text-slate-400">{orderType}: {tableOrRoom}</span>
@@ -705,7 +705,7 @@ export default function RestaurantPOS() {
             </div>
 
             {/* Order Items List */}
-            <div className="flex-1 p-4 overflow-y-auto divide-y divide-slate-100">
+            <div className="flex-1 min-h-[180px] p-4 overflow-y-auto divide-y divide-slate-100">
               {orderItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
                   <Utensils className="w-8 h-8 opacity-40" />
@@ -778,7 +778,7 @@ export default function RestaurantPOS() {
             </div>
 
             {/* Totals & Actions */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2 text-xs">
+            <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2 text-xs shrink-0 mt-auto">
               <div className="flex justify-between text-slate-500">
                 <span>Subtotal:</span>
                 <span className="font-semibold text-slate-800">Rs. {subtotal.toFixed(2)}</span>
