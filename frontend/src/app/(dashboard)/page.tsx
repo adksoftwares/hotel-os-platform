@@ -421,9 +421,10 @@ export default function Dashboard() {
           action={
             <Link 
               href="/rooms" 
-              className="text-xs font-semibold text-emerald-800 hover:underline flex items-center gap-1"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 hover:bg-emerald-50 text-emerald-800 hover:text-emerald-900 border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold shrink-0 whitespace-nowrap transition-colors"
             >
-              Open Room Board <ExternalLink className="w-3 h-3" />
+              <span>Room Board</span>
+              <ExternalLink className="w-3 h-3 text-emerald-600" />
             </Link>
           }
         >
@@ -491,9 +492,10 @@ export default function Dashboard() {
           action={
             <Link 
               href="/pos" 
-              className="text-xs font-semibold text-emerald-800 hover:underline flex items-center gap-1"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 hover:bg-emerald-50 text-emerald-800 hover:text-emerald-900 border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold shrink-0 whitespace-nowrap transition-colors"
             >
-              Launch POS <ExternalLink className="w-3 h-3" />
+              <span>Launch POS</span>
+              <ExternalLink className="w-3 h-3 text-emerald-600" />
             </Link>
           }
         >
@@ -567,9 +569,10 @@ export default function Dashboard() {
           action={
             <Link 
               href="/billing" 
-              className="text-xs font-semibold text-emerald-800 hover:underline flex items-center gap-1"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 hover:bg-emerald-50 text-emerald-800 hover:text-emerald-900 border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold shrink-0 whitespace-nowrap transition-colors"
             >
-              Cashier Desk <ExternalLink className="w-3 h-3" />
+              <span>Cashier Desk</span>
+              <ExternalLink className="w-3 h-3 text-emerald-600" />
             </Link>
           }
         >

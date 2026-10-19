@@ -147,11 +147,11 @@ export function ReceiptModal({ invoice, user = { name: 'Admin Cashier' }, onClos
       
       if (invoice.paymentMethod === 'CASH') {
         doc.text("Cash Received:", margin, finalY);
-        doc.text(`Rs. ${invoice.amountReceived?.toFixed(2) || '0.00'}`, width - margin, finalY, { align: "right" });
+        doc.text(`Rs. ${Number(invoice.amountReceived || 0).toFixed(2)}`, width - margin, finalY, { align: "right" });
         finalY += 4;
         doc.setFont("helvetica", "bold");
         doc.text("Balance / Change:", margin, finalY);
-        doc.text(`Rs. ${invoice.balance?.toFixed(2) || '0.00'}`, width - margin, finalY, { align: "right" });
+        doc.text(`Rs. ${Number(invoice.balance || 0).toFixed(2)}`, width - margin, finalY, { align: "right" });
         finalY += 6;
       }
 
