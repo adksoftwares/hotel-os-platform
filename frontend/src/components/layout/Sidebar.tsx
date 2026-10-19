@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Key, CalendarCheck, BedDouble, 
   Utensils, ChefHat, Package, Wrench, 
-  BarChart3, Settings, Building2, Smartphone, Sparkles, List, Users
+  BarChart3, Settings, Building2, List, Users
 } from 'lucide-react';
 
 interface NavGroup {
@@ -120,30 +120,6 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Mobile / Staff Handheld Portals Shortcuts */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/40 space-y-2">
-        <p className="px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-          Staff Portals
-        </p>
-        <div className="grid grid-cols-2 gap-1.5 text-xs">
-          <Link 
-            href="/pos/waiter" 
-            className="flex items-center gap-1.5 p-2 rounded bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors text-[11px] font-medium"
-            title="Waiter Handheld Ordering"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span>Waiter POS</span>
-          </Link>
-          <Link 
-            href="/rooms/housekeeper" 
-            className="flex items-center gap-1.5 p-2 rounded bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors text-[11px] font-medium"
-            title="Housekeeper Maid Portal"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>Maid Portal</span>
-          </Link>
-        </div>
-      </div>
 
       {/* Property & System Status Footer */}
       <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 text-xs text-slate-400 flex items-center justify-between">
