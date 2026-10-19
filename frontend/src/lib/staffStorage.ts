@@ -1,4 +1,4 @@
-export type StaffRole = 'WAITER' | 'MAID' | 'ADMIN';
+export type StaffRole = 'WAITER' | 'MAID' | 'ADMIN' | 'SUPER_ADMIN';
 
 export interface StaffAccount {
   id: string;
@@ -9,12 +9,55 @@ export interface StaffAccount {
   username: string;
   password: string;
   role: StaffRole;
+  property?: string;
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
 }
 
 export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
+  {
+    id: 'STF-SA01',
+    firstName: 'Chief',
+    lastName: 'Super Administrator',
+    phone: '+91 99999 00000',
+    email: 'superadmin@hotel.com',
+    username: 'superadmin',
+    password: 'Super@123',
+    role: 'SUPER_ADMIN',
+    property: 'Corporate Multi-Property HQ',
+    isActive: true,
+    createdAt: '2026-10-01',
+    lastLogin: '2026-10-19 17:30',
+  },
+  {
+    id: 'STF-A01',
+    firstName: 'Siddharth',
+    lastName: 'Varma',
+    phone: '+91 98400 11223',
+    email: 'admin@hotel.com',
+    username: 'admin',
+    password: 'Admin@123',
+    role: 'ADMIN',
+    property: 'Grand Horizon Resort - Marina Bay',
+    isActive: true,
+    createdAt: '2026-10-01',
+    lastLogin: '2026-10-19 17:00',
+  },
+  {
+    id: 'STF-A02',
+    firstName: 'Meenakshi',
+    lastName: 'Sundaram',
+    phone: '+91 98400 33445',
+    email: 'meenakshi.admin@hotel.com',
+    username: 'admin_meenakshi',
+    password: 'Admin@123',
+    role: 'ADMIN',
+    property: 'Grand Horizon Boutique & Villas',
+    isActive: true,
+    createdAt: '2026-10-05',
+    lastLogin: '2026-10-19 11:20',
+  },
   {
     id: 'STF-W01',
     firstName: 'Ravi',
@@ -24,6 +67,7 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
     username: 'waiter_ravi',
     password: 'password123',
     role: 'WAITER',
+    property: 'Grand Horizon Resort - Marina Bay',
     isActive: true,
     createdAt: '2026-10-10',
     lastLogin: '2026-10-19 14:30',
@@ -37,6 +81,7 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
     username: 'waiter_sanjay',
     password: 'password123',
     role: 'WAITER',
+    property: 'Grand Horizon Resort - Marina Bay',
     isActive: true,
     createdAt: '2026-10-12',
     lastLogin: '2026-10-19 12:15',
@@ -50,6 +95,7 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
     username: 'maid_priya',
     password: 'password123',
     role: 'MAID',
+    property: 'Grand Horizon Resort - Marina Bay',
     isActive: true,
     createdAt: '2026-10-09',
     lastLogin: '2026-10-19 15:45',
@@ -63,22 +109,10 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
     username: 'maid_anitha',
     password: 'password123',
     role: 'MAID',
+    property: 'Grand Horizon Resort - Marina Bay',
     isActive: true,
     createdAt: '2026-10-11',
     lastLogin: '2026-10-18 17:00',
-  },
-  {
-    id: 'STF-A01',
-    firstName: 'Hotel',
-    lastName: 'Administrator',
-    phone: '+91 98400 00000',
-    email: 'admin@hotel.com',
-    username: 'admin',
-    password: 'Admin@123',
-    role: 'ADMIN',
-    isActive: true,
-    createdAt: '2026-10-01',
-    lastLogin: '2026-10-19 17:00',
   },
 ];
 
@@ -90,7 +124,16 @@ export const loadStaffAccounts = (): StaffAccount[] => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Ensure Super Admin and Admin exist in the list
+        const hasSuperAdmin = parsed.some((p: StaffAccount) => p.role === 'SUPER_ADMIN' || p.username === 'superadmin');
+        if (!hasSuperAdmin) {
+          const merged = [...INITIAL_STAFF_ACCOUNTS.filter(a => a.role === 'SUPER_ADMIN'), ...parsed];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+          return merged;
+        }
+        return parsed;
+      }
     }
     // Seed default if empty
     localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_STAFF_ACCOUNTS));
@@ -110,7 +153,13 @@ export const createStaffAccount = (
   accountData: Omit<StaffAccount, 'id' | 'createdAt' | 'isActive'>
 ): StaffAccount => {
   const accounts = loadStaffAccounts();
-  const prefix = accountData.role === 'WAITER' ? 'STF-W' : accountData.role === 'MAID' ? 'STF-M' : 'STF-A';
+  const prefix = accountData.role === 'SUPER_ADMIN' 
+    ? 'STF-SA' 
+    : accountData.role === 'ADMIN' 
+    ? 'STF-A' 
+    : accountData.role === 'WAITER' 
+    ? 'STF-W' 
+    : 'STF-M';
   const newId = `${prefix}${Math.floor(100 + Math.random() * 900)}`;
 
   const newAccount: StaffAccount = {

@@ -47,9 +47,9 @@ export default function PlatformSettings() {
             </div>
             <div>
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 group-hover:text-indigo-800">
-                Staff Accounts
+                Staff & Admin Accounts
               </h3>
-              <p className="text-[11px] text-slate-500">Waiters & Maids logins & passwords</p>
+              <p className="text-[11px] text-slate-500">Hotel Admins, Waiters & Maids shift logins</p>
             </div>
           </div>
           <span className="text-xs font-semibold text-indigo-800 mt-3 inline-block">

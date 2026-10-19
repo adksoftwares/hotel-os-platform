@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Building2, Lock, User, AlertCircle, ArrowRight, 
-  Eye, EyeOff, Smartphone, Sparkles, Shield
+  Eye, EyeOff, Smartphone, Sparkles, Shield, Crown
 } from 'lucide-react';
 import { loadStaffAccounts, StaffAccount } from '@/lib/staffStorage';
 
@@ -200,11 +200,21 @@ export default function Login() {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
               Quick Workstation Switcher
             </p>
-            <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+            <div className="grid grid-cols-4 gap-1 text-[10px]">
+              <button
+                type="button"
+                onClick={() => setPreset('superadmin', 'Super@123')}
+                className="p-1.5 rounded-lg border border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-purple-900 font-semibold text-center flex flex-col items-center gap-0.5 transition-colors"
+                title="Super Admin (Corporate HQ)"
+              >
+                <Crown className="w-3 h-3 text-purple-600" />
+                <span>Super Admin</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setPreset('admin', 'Admin@123')}
                 className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-center flex flex-col items-center gap-0.5 transition-colors"
+                title="Hotel Administrator"
               >
                 <Shield className="w-3 h-3 text-blue-600" />
                 <span>Admin</span>
@@ -213,6 +223,7 @@ export default function Login() {
                 type="button"
                 onClick={() => setPreset('waiter_ravi', 'password123')}
                 className="p-1.5 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100 text-amber-900 font-semibold text-center flex flex-col items-center gap-0.5 transition-colors"
+                title="Waiter Handheld POS"
               >
                 <Smartphone className="w-3 h-3 text-amber-600" />
                 <span>Waiter</span>
@@ -221,6 +232,7 @@ export default function Login() {
                 type="button"
                 onClick={() => setPreset('maid_priya', 'password123')}
                 className="p-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 font-semibold text-center flex flex-col items-center gap-0.5 transition-colors"
+                title="Maid Housekeeping Portal"
               >
                 <Sparkles className="w-3 h-3 text-emerald-600" />
                 <span>Maid</span>

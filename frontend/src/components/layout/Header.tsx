@@ -85,6 +85,33 @@ export function Header() {
   // Luxury Gold / Obsidian Theme Mode
   const [isLuxuryGold, setIsLuxuryGold] = useState(false);
 
+  // Authenticated User State
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    email: string;
+    role: string;
+  }>({
+    name: 'Hotel Administrator',
+    email: 'admin@hotel.com',
+    role: 'ADMIN',
+  });
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.name && parsed.email) {
+          setCurrentUser({
+            name: parsed.name,
+            email: parsed.email,
+            role: parsed.role || 'ADMIN',
+          });
+        }
+      }
+    } catch (_) {}
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleLogout = () => {
@@ -323,12 +350,34 @@ export function Header() {
 
           {/* User Profile Pill */}
           <div className="flex items-center gap-2.5 pl-1">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-              AD
+            <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs shadow-sm ${
+              currentUser.role === 'SUPER_ADMIN'
+                ? 'bg-gradient-to-tr from-purple-700 to-indigo-700 ring-2 ring-purple-300'
+                : 'bg-gradient-to-tr from-blue-600 to-indigo-600'
+            }`}>
+              {currentUser.role === 'SUPER_ADMIN' ? (
+                <Crown className="w-4 h-4 text-amber-300" />
+              ) : (
+                currentUser.name
+                  ? currentUser.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .substring(0, 2)
+                      .toUpperCase()
+                  : 'AD'
+              )}
             </div>
             <div className="hidden lg:block text-left">
-              <p className="text-xs font-bold text-slate-800 leading-none">Hotel Administrator</p>
-              <p className="text-[11px] text-slate-400 mt-0.5 leading-none">admin@hotel.com</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold text-slate-800 leading-none">{currentUser.name}</p>
+                {currentUser.role === 'SUPER_ADMIN' && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 uppercase">
+                    Super Admin
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5 leading-none">{currentUser.email}</p>
             </div>
           </div>
 
