@@ -57,9 +57,9 @@ const TABLES_LIST = [
 export default function WaiterHandheldPOS() {
   const { toast } = useToast();
 
-  const [selectedTable, setSelectedTable] = useState('Table 2');
+  const [selectedTable, setSelectedTable] = useState('Table 1');
   const [guestCovers, setGuestCovers] = useState(2);
-  const [waiterName, setWaiterName] = useState('Captain Rajesh');
+  const [waiterName, setWaiterName] = useState('Waiter Staff');
   const [activeTab, setActiveTab] = useState<'All' | 'Starters' | 'Mains' | 'Desserts' | 'Beverages'>('All');
   const [searchFilter, setSearchFilter] = useState('');
   const [holdMains, setHoldMains] = useState(true);

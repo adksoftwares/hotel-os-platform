@@ -66,33 +66,33 @@ interface LiveOperationalMetrics {
 const fallbackData: LiveOperationalMetrics = {
   hotel: {
     totalRooms: 12,
-    occupancyRate: 50,
-    occupiedRooms: 6,
-    vacantRooms: 6,
-    reservedRooms: 2,
-    todayArrivals: 4,
-    todayDepartures: 3,
-    inHouseGuests: 6,
+    occupancyRate: 0,
+    occupiedRooms: 0,
+    vacantRooms: 12,
+    reservedRooms: 0,
+    todayArrivals: 0,
+    todayDepartures: 0,
+    inHouseGuests: 0,
   },
   housekeeping: {
-    dirtyRooms: 3,
-    cleaningRooms: 1,
-    readyRooms: 8,
-    maintenanceRooms: 1,
-    inspectionRooms: 3,
+    dirtyRooms: 0,
+    cleaningRooms: 0,
+    readyRooms: 12,
+    maintenanceRooms: 0,
+    inspectionRooms: 0,
   },
   restaurant: {
-    activeOrders: 4,
-    activeKots: 3,
-    preparingKots: 2,
-    readyKots: 1,
-    occupiedTables: 3,
-    delayedKots: 1,
+    activeOrders: 0,
+    activeKots: 0,
+    preparingKots: 0,
+    readyKots: 0,
+    occupiedTables: 0,
+    delayedKots: 0,
   },
   financial: {
-    todayRevenue: 2750.00,
-    todayPayments: 1750.00,
-    outstanding: 1000.00,
+    todayRevenue: 0.00,
+    todayPayments: 0.00,
+    outstanding: 0.00,
   },
 };
 
@@ -101,7 +101,7 @@ const computeLiveOperationalState = (): LiveOperationalMetrics => {
 
   // 1. Live Rooms & Housekeeping
   const rooms = loadHotelRoomsFleet();
-  const totalRooms = rooms.length > 0 ? rooms.length : fallbackData.hotel.totalRooms;
+  const totalRooms = rooms.length > 0 ? rooms.length : 12;
   const occupiedRooms = rooms.filter(r => r.occupancy === 'Occupied').length;
   const vacantRooms = rooms.filter(r => r.occupancy === 'Vacant').length;
   const reservedRooms = rooms.filter(r => r.occupancy === 'Reserved').length;
@@ -125,12 +125,12 @@ const computeLiveOperationalState = (): LiveOperationalMetrics => {
     }
   } catch (_) {}
 
-  const inHouseGuests = rooms.filter(r => r.occupancy === 'Occupied' && r.currentGuest && r.currentGuest !== 'None').length;
+  const inHouseGuests = rooms.filter(r => r.occupancy === 'Occupied' && r.currentGuest && r.currentGuest !== 'None' && r.currentGuest !== 'Vacant').length;
 
   // 3. Live Cashier & Billing Folios
-  let todayRevenue = fallbackData.financial.todayRevenue;
-  let todayPayments = fallbackData.financial.todayPayments;
-  let outstanding = fallbackData.financial.outstanding;
+  let todayRevenue = 0;
+  let todayPayments = 0;
+  let outstanding = 0;
   try {
     const rawFolios = localStorage.getItem('hotel_billing_folios');
     if (rawFolios) {
@@ -154,17 +154,31 @@ const computeLiveOperationalState = (): LiveOperationalMetrics => {
   } catch (_) {}
 
   const activeKotsList = kots.filter((k: any) => k.status !== 'DONE' && k.status !== 'SERVED');
-  const activeKots = kots.length > 0 ? activeKotsList.length : fallbackData.restaurant.activeKots;
-  const preparingKots = kots.length > 0 ? activeKotsList.filter((k: any) => k.status === 'PREPARING').length : fallbackData.restaurant.preparingKots;
-  const readyKots = kots.length > 0 ? activeKotsList.filter((k: any) => k.status === 'READY').length : fallbackData.restaurant.readyKots;
-  const delayedKots = kots.length > 0 ? activeKotsList.filter((k: any) => k.urgent).length : fallbackData.restaurant.delayedKots;
+  const activeKots = activeKotsList.length;
+  const preparingKots = activeKotsList.filter((k: any) => k.status === 'PREPARING').length;
+  const readyKots = activeKotsList.filter((k: any) => k.status === 'READY').length;
+  const delayedKots = activeKotsList.filter((k: any) => k.urgent).length;
 
   const tableSet = new Set<string>();
   activeKotsList.forEach((k: any) => {
     if (k.table) tableSet.add(k.table);
   });
-  const occupiedTables = tableSet.size > 0 ? tableSet.size : fallbackData.restaurant.occupiedTables;
-  const activeOrders = activeKotsList.length > 0 ? activeKotsList.length : fallbackData.restaurant.activeOrders;
+  const occupiedTables = tableSet.size;
+  const activeOrders = activeKotsList.length;
+
+  // 5. Live Arrivals & Departures
+  let todayArrivals = 0;
+  let todayDepartures = 0;
+  try {
+    const rawArrivals = localStorage.getItem('hotel_frontdesk_arrivals');
+    if (rawArrivals) {
+      const arr = JSON.parse(rawArrivals);
+      if (Array.isArray(arr)) {
+        todayArrivals = arr.filter((a: any) => a.status === 'Pending').length;
+        todayDepartures = arr.filter((a: any) => a.status === 'Due Out').length;
+      }
+    }
+  } catch (_) {}
 
   return {
     hotel: {
@@ -173,9 +187,9 @@ const computeLiveOperationalState = (): LiveOperationalMetrics => {
       occupiedRooms,
       vacantRooms,
       reservedRooms,
-      todayArrivals: fallbackData.hotel.todayArrivals,
-      todayDepartures: fallbackData.hotel.todayDepartures,
-      inHouseGuests: inHouseGuests > 0 ? inHouseGuests : fallbackData.hotel.inHouseGuests,
+      todayArrivals,
+      todayDepartures,
+      inHouseGuests,
     },
     housekeeping: {
       dirtyRooms,

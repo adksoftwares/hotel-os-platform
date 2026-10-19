@@ -25,44 +25,7 @@ interface ArrivalItem {
   accompanying: AccompanyingGuest[];
 }
 
-const initialArrivals: ArrivalItem[] = [
-  {
-    id: 'ARR-101',
-    guest: 'Jonathan Sterling',
-    roomNumber: '201',
-    roomType: 'Deluxe King',
-    eta: '14:30',
-    status: 'Pending',
-    accompanying: [{ id: '1', name: 'Claire Sterling', nic: 'UK-921820', phone: '+44 7700 9001' }]
-  },
-  {
-    id: 'ARR-102',
-    guest: 'Beatriz Gomez',
-    roomNumber: '102',
-    roomType: 'Standard Queen',
-    eta: '16:00',
-    status: 'Pending',
-    accompanying: []
-  },
-  {
-    id: 'ARR-103',
-    guest: 'Ambassador Pierre Dubois',
-    roomNumber: '401',
-    roomType: 'Presidential Suite',
-    eta: '11:15',
-    status: 'Checked-In',
-    accompanying: [{ id: '2', name: 'Marie Dubois', nic: 'FR-88912', phone: '+33 6 1234' }]
-  },
-  {
-    id: 'ARR-104',
-    guest: 'Kenji Takahashi',
-    roomNumber: '305',
-    roomType: 'Executive Suite',
-    eta: '19:45',
-    status: 'Pending',
-    accompanying: []
-  }
-];
+const initialArrivals: ArrivalItem[] = [];
 
 export default function FrontDesk() {
   const { toast } = useToast();
@@ -245,7 +208,14 @@ export default function FrontDesk() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {arrivals.map((arr) => (
+                  {arrivals.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-xs">
+                        No pending arrivals found. Register a new arrival with "+ Walk-In Registration".
+                      </td>
+                    </tr>
+                  ) : (
+                    arrivals.map((arr) => (
                     <tr key={arr.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="font-bold text-slate-800">{arr.guest}</div>
@@ -282,7 +252,8 @@ export default function FrontDesk() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                  ))
+                )}
                 </tbody>
               </table>
             </div>

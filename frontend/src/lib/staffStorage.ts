@@ -18,8 +18,8 @@ export interface StaffAccount {
 export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
   {
     id: 'STF-SA01',
-    firstName: 'Chief',
-    lastName: 'Super Administrator',
+    firstName: 'Super',
+    lastName: 'Admin',
     phone: '+91 99999 00000',
     email: 'superadmin@hotel.com',
     username: 'superadmin',
@@ -32,87 +32,17 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
   },
   {
     id: 'STF-A01',
-    firstName: 'Siddharth',
-    lastName: 'Varma',
-    phone: '+91 98400 11223',
+    firstName: 'Hotel',
+    lastName: 'Administrator',
+    phone: '+91 98400 00000',
     email: 'admin@hotel.com',
     username: 'admin',
     password: 'Admin@123',
     role: 'ADMIN',
-    property: 'Grand Horizon Resort - Marina Bay',
+    property: 'Main Hotel Property',
     isActive: true,
     createdAt: '2026-10-01',
     lastLogin: '2026-10-19 17:00',
-  },
-  {
-    id: 'STF-A02',
-    firstName: 'Meenakshi',
-    lastName: 'Sundaram',
-    phone: '+91 98400 33445',
-    email: 'meenakshi.admin@hotel.com',
-    username: 'admin_meenakshi',
-    password: 'Admin@123',
-    role: 'ADMIN',
-    property: 'Grand Horizon Boutique & Villas',
-    isActive: true,
-    createdAt: '2026-10-05',
-    lastLogin: '2026-10-19 11:20',
-  },
-  {
-    id: 'STF-W01',
-    firstName: 'Ravi',
-    lastName: 'Kumar',
-    phone: '+91 98401 23456',
-    email: 'ravi.waiter@hotel.com',
-    username: 'waiter_ravi',
-    password: 'password123',
-    role: 'WAITER',
-    property: 'Grand Horizon Resort - Marina Bay',
-    isActive: true,
-    createdAt: '2026-10-10',
-    lastLogin: '2026-10-19 14:30',
-  },
-  {
-    id: 'STF-W02',
-    firstName: 'Sanjay',
-    lastName: 'Dutt',
-    phone: '+91 98402 34567',
-    email: 'sanjay.waiter@hotel.com',
-    username: 'waiter_sanjay',
-    password: 'password123',
-    role: 'WAITER',
-    property: 'Grand Horizon Resort - Marina Bay',
-    isActive: true,
-    createdAt: '2026-10-12',
-    lastLogin: '2026-10-19 12:15',
-  },
-  {
-    id: 'STF-M01',
-    firstName: 'Priya',
-    lastName: 'Selvam',
-    phone: '+91 98403 45678',
-    email: 'priya.maid@hotel.com',
-    username: 'maid_priya',
-    password: 'password123',
-    role: 'MAID',
-    property: 'Grand Horizon Resort - Marina Bay',
-    isActive: true,
-    createdAt: '2026-10-09',
-    lastLogin: '2026-10-19 15:45',
-  },
-  {
-    id: 'STF-M02',
-    firstName: 'Anitha',
-    lastName: 'Ramesh',
-    phone: '+91 98404 56789',
-    email: 'anitha.maid@hotel.com',
-    username: 'maid_anitha',
-    password: 'password123',
-    role: 'MAID',
-    property: 'Grand Horizon Resort - Marina Bay',
-    isActive: true,
-    createdAt: '2026-10-11',
-    lastLogin: '2026-10-18 17:00',
   },
 ];
 
@@ -125,14 +55,16 @@ export const loadStaffAccounts = (): StaffAccount[] => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure Super Admin and Admin exist in the list
-        const hasSuperAdmin = parsed.some((p: StaffAccount) => p.role === 'SUPER_ADMIN' || p.username === 'superadmin');
-        if (!hasSuperAdmin) {
-          const merged = [...INITIAL_STAFF_ACCOUNTS.filter(a => a.role === 'SUPER_ADMIN'), ...parsed];
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-          return merged;
-        }
-        return parsed;
+        // Purge fake mock staff accounts
+        const fakeUsernames = ['waiter_ravi', 'waiter_sanjay', 'maid_priya', 'maid_anitha', 'admin_meenakshi'];
+        const clean = parsed.filter((p: StaffAccount) => !fakeUsernames.includes(p.username.toLowerCase()));
+        
+        // Ensure Super Admin exists
+        const hasSuperAdmin = clean.some((p: StaffAccount) => p.role === 'SUPER_ADMIN' || p.username === 'superadmin');
+        const finalAccounts = hasSuperAdmin ? clean : [...INITIAL_STAFF_ACCOUNTS.filter(a => a.role === 'SUPER_ADMIN'), ...clean];
+        
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(finalAccounts));
+        return finalAccounts;
       }
     }
     // Seed default if empty

@@ -41,15 +41,15 @@ const INITIAL_ASSIGNED_ROOMS: AssignedRoom[] = [
     roomNumber: '101',
     type: 'Deluxe King',
     floor: 1,
-    cleanType: 'Checkout Departure',
-    status: 'DIRTY',
-    priority: 'HIGH',
-    guestName: 'Departed (Robert Fox)',
+    cleanType: 'Stayover',
+    status: 'CLEAN',
+    priority: 'NORMAL',
+    guestName: 'Vacant',
     cleaningSeconds: 0,
     isTimerRunning: false,
     minibar: [
-      { id: 'mb1', name: 'Evian Sparkling Water (500ml)', price: 6.0, consumed: 2 },
-      { id: 'mb2', name: 'Belgian Dark Chocolate Bar', price: 8.0, consumed: 1 },
+      { id: 'mb1', name: 'Evian Sparkling Water (500ml)', price: 6.0, consumed: 0 },
+      { id: 'mb2', name: 'Belgian Dark Chocolate Bar', price: 8.0, consumed: 0 },
       { id: 'mb3', name: 'Heineken Lager Beer', price: 9.0, consumed: 0 },
       { id: 'mb4', name: 'Gourmet Roasted Cashews', price: 7.0, consumed: 0 },
     ],
@@ -61,28 +61,28 @@ const INITIAL_ASSIGNED_ROOMS: AssignedRoom[] = [
     type: 'Standard Queen',
     floor: 1,
     cleanType: 'Stayover',
-    status: 'CLEANING',
+    status: 'CLEAN',
     priority: 'NORMAL',
-    guestName: 'In-House (Jane Cooper)',
-    cleaningSeconds: 520, // ~8 mins 40 secs
-    isTimerRunning: true,
+    guestName: 'Vacant',
+    cleaningSeconds: 0,
+    isTimerRunning: false,
     minibar: [
-      { id: 'mb1', name: 'Evian Sparkling Water (500ml)', price: 6.0, consumed: 1 },
+      { id: 'mb1', name: 'Evian Sparkling Water (500ml)', price: 6.0, consumed: 0 },
       { id: 'mb2', name: 'Belgian Dark Chocolate Bar', price: 8.0, consumed: 0 },
-      { id: 'mb3', name: 'Heineken Lager Beer', price: 9.0, consumed: 2 },
-      { id: 'mb4', name: 'Gourmet Roasted Cashews', price: 7.0, consumed: 1 },
+      { id: 'mb3', name: 'Heineken Lager Beer', price: 9.0, consumed: 0 },
+      { id: 'mb4', name: 'Gourmet Roasted Cashews', price: 7.0, consumed: 0 },
     ],
-    checklist: { linens: true, towels: true, amenities: false, disinfection: false }
+    checklist: { linens: false, towels: false, amenities: false, disinfection: false }
   },
   {
     id: 'R201',
     roomNumber: '201',
     type: 'Executive Suite',
     floor: 2,
-    cleanType: 'Checkout Departure',
-    status: 'DIRTY',
-    priority: 'VIP',
-    guestName: 'Arriving 2:00 PM (David Chen)',
+    cleanType: 'Stayover',
+    status: 'CLEAN',
+    priority: 'NORMAL',
+    guestName: 'Vacant',
     cleaningSeconds: 0,
     isTimerRunning: false,
     minibar: [
@@ -101,8 +101,8 @@ const INITIAL_ASSIGNED_ROOMS: AssignedRoom[] = [
     cleanType: 'Stayover',
     status: 'CLEAN',
     priority: 'NORMAL',
-    guestName: 'In-House (Sarah Miller)',
-    cleaningSeconds: 960,
+    guestName: 'Vacant',
+    cleaningSeconds: 0,
     isTimerRunning: false,
     minibar: [
       { id: 'mb1', name: 'Evian Sparkling Water (500ml)', price: 6.0, consumed: 0 },
@@ -110,13 +110,13 @@ const INITIAL_ASSIGNED_ROOMS: AssignedRoom[] = [
       { id: 'mb3', name: 'Heineken Lager Beer', price: 9.0, consumed: 0 },
       { id: 'mb4', name: 'Gourmet Roasted Cashews', price: 7.0, consumed: 0 },
     ],
-    checklist: { linens: true, towels: true, amenities: true, disinfection: true }
+    checklist: { linens: false, towels: false, amenities: false, disinfection: false }
   }
 ];
 
 export default function HousekeeperPortal() {
   const { toast } = useToast();
-  const [attendantName, setAttendantName] = useState('Priya Selvam');
+  const [attendantName, setAttendantName] = useState('Housekeeping Staff');
   const [rooms, setRooms] = useState<AssignedRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [showMaintModal, setShowMaintModal] = useState(false);

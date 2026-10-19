@@ -43,7 +43,7 @@ export default function StaffManagementPage() {
     username: '',
     password: '',
     role: 'ADMIN' as StaffRole,
-    property: 'Grand Horizon Resort - Marina Bay',
+    property: 'Main Hotel Property',
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -120,7 +120,7 @@ export default function StaffManagementPage() {
       username: '',
       password: '',
       role: activeTab,
-      property: activeTab === 'ADMIN' ? 'Grand Horizon Resort - Marina Bay' : 'Grand Horizon Resort - Marina Bay',
+      property: 'Main Hotel Property',
     });
     setShowPassText(false);
     setShowCreateModal(true);

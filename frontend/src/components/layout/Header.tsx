@@ -18,53 +18,7 @@ interface NotificationItem {
   link?: string;
 }
 
-const initialNotifications: NotificationItem[] = [
-  {
-    id: '1',
-    title: 'Room 102 Marked Dirty',
-    description: 'Guest checked out. Housekeeping task generated.',
-    time: '2 mins ago',
-    type: 'urgent',
-    read: false,
-    link: '/rooms',
-  },
-  {
-    id: '2',
-    title: 'Table 4 Bill Requested',
-    description: 'Server requested final folio settlement for Rs. 142.50.',
-    time: '5 mins ago',
-    type: 'urgent',
-    read: false,
-    link: '/pos',
-  },
-  {
-    id: '3',
-    title: 'VIP Arrival Today: Sarah Jenkins',
-    description: 'Executive Suite 201 booked via Direct Website.',
-    time: '20 mins ago',
-    type: 'info',
-    read: false,
-    link: '/reservations',
-  },
-  {
-    id: '4',
-    title: 'Low Stock Alert: Coffee Pods',
-    description: 'Stock level reached reorder point (45 remaining).',
-    time: '1 hour ago',
-    type: 'urgent',
-    read: false,
-    link: '/inventory',
-  },
-  {
-    id: '5',
-    title: 'OTA Channel Sync Completed',
-    description: 'Booking.com and Expedia inventories reconciled.',
-    time: '2 hours ago',
-    type: 'success',
-    read: true,
-    link: '/settings',
-  },
-];
+const initialNotifications: NotificationItem[] = [];
 
 const CHAIN_PROPERTIES = [
   { id: 'prop-marina', name: 'Grand Horizon Resort - Marina Bay', type: 'Flagship 5★ Luxury', rooms: 140 },
