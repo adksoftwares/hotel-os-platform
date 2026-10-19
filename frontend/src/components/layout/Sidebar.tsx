@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Key, CalendarCheck, BedDouble, 
-  Utensils, ChefHat, Receipt, Package, Wrench, 
+  Utensils, ChefHat, Package, Wrench, 
   BarChart3, Settings, Building2, Smartphone, Sparkles, List, Users
 } from 'lucide-react';
 
@@ -39,7 +39,6 @@ const navGroups: NavGroup[] = [
   {
     label: "FINANCE & OPERATIONS",
     items: [
-      { name: "Billing & Cashier", path: "/billing", icon: Receipt },
       { name: "Inventory & Stock", path: "/inventory", icon: Package },
       { name: "Maintenance", path: "/maintenance", icon: Wrench },
     ],
