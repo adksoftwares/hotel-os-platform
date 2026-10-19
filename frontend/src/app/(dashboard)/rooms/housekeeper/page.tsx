@@ -116,12 +116,22 @@ const INITIAL_ASSIGNED_ROOMS: AssignedRoom[] = [
 
 export default function HousekeeperPortal() {
   const { toast } = useToast();
-  const [attendantName] = useState('Priya Selvam');
+  const [attendantName, setAttendantName] = useState('Priya Selvam');
   const [rooms, setRooms] = useState<AssignedRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [showMaintModal, setShowMaintModal] = useState(false);
   const [maintDescription, setMaintDescription] = useState('');
   const [maintPriority, setMaintPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>('MEDIUM');
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('user');
+      if (u) {
+        const parsed = JSON.parse(u);
+        if (parsed.name) setAttendantName(parsed.name);
+      }
+    } catch (_) {}
+  }, []);
 
   // Load rooms from fleet storage
   const loadFleetRooms = () => {

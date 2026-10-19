@@ -1,10 +1,14 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Lock, Mail, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { 
+  Building2, Lock, User, AlertCircle, ArrowRight, 
+  Eye, EyeOff, Smartphone, Sparkles, Shield
+} from 'lucide-react';
+import { loadStaffAccounts, StaffAccount } from '@/lib/staffStorage';
 
 export default function Login() {
-  const [email, setEmail] = useState('super_admin@gmail.com');
+  const [identifier, setIdentifier] = useState('admin');
   const [password, setPassword] = useState('Admin@123');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -16,19 +20,69 @@ export default function Login() {
     setError('');
     setLoading(true);
 
+    const inputClean = identifier.trim().toLowerCase();
+
+    // 1. First, check registered local staff accounts (Waiters, Maids, Admins)
+    try {
+      const staffList = loadStaffAccounts();
+      const matchedStaff = staffList.find(
+        (s) =>
+          s.username.toLowerCase() === inputClean ||
+          s.email.toLowerCase() === inputClean
+      );
+
+      if (matchedStaff) {
+        if (!matchedStaff.isActive) {
+          setError('This staff workstation account is currently suspended. Please contact Hotel Administrator.');
+          setLoading(false);
+          return;
+        }
+
+        if (matchedStaff.password !== password) {
+          setError('Incorrect security password. Please re-enter or ask Admin to reset.');
+          setLoading(false);
+          return;
+        }
+
+        // Successfully authenticated staff member!
+        localStorage.setItem('access_token', `staff-token-${matchedStaff.id}-${Date.now()}`);
+        localStorage.setItem(
+          'user',
+          JSON.stringify({
+            id: matchedStaff.id,
+            name: `${matchedStaff.firstName} ${matchedStaff.lastName}`,
+            email: matchedStaff.email,
+            username: matchedStaff.username,
+            role: matchedStaff.role,
+            phone: matchedStaff.phone,
+          })
+        );
+
+        // Role-based directional routing
+        if (matchedStaff.role === 'WAITER') {
+          router.push('/pos/waiter');
+        } else if (matchedStaff.role === 'MAID') {
+          router.push('/rooms/housekeeper');
+        } else {
+          router.push('/');
+        }
+        return;
+      }
+    } catch (_) {}
+
+    // 2. If not found in staff accounts, try backend API
     try {
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 
       const res = await fetch(`${apiBaseUrl.replace(/\/$/, '')}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: identifier, password }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.message || 'Invalid email or password. Please verify your credentials.');
+        setError(data.message || 'Invalid username/email or password. Please verify credentials.');
         return;
       }
 
@@ -40,51 +94,64 @@ export default function Login() {
 
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/');
+
+      if (data.user?.role === 'WAITER') {
+        router.push('/pos/waiter');
+      } else if (data.user?.role === 'MAID' || data.user?.role === 'HOUSEKEEPING') {
+        router.push('/rooms/housekeeper');
+      } else {
+        router.push('/');
+      }
     } catch {
-      setError('Unable to connect to the authentication service. Please try again later.');
+      setError('Unable to authenticate with server. For staff accounts, verify username and password.');
     } finally {
       setLoading(false);
     }
   };
 
+  const setPreset = (userVal: string, passVal: string) => {
+    setIdentifier(userVal);
+    setPassword(passVal);
+    setError('');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 select-none">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden">
-        <div className="p-8 bg-slate-900 text-white text-center border-b border-slate-800">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold shadow-md">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/90 overflow-hidden">
+        <div className="p-7 bg-slate-900 text-white text-center border-b border-slate-800">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-md">
             <Building2 className="w-6 h-6" />
           </div>
           <h1 className="text-xl font-bold tracking-tight">ADK Hotel OS</h1>
-          <p className="text-xs text-slate-400 mt-1">Hospitality Enterprise Workstation</p>
+          <p className="text-xs text-slate-400 mt-0.5">Hospitality Enterprise Workstation</p>
         </div>
 
-        <form onSubmit={handleLogin} className="p-8 space-y-4">
+        <form onSubmit={handleLogin} className="p-7 space-y-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Staff Authentication</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Enter your workstation credentials to begin shift</p>
+            <h2 className="text-base font-bold text-slate-900">Workstation Login</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Sign in to your shift with your individual credentials</p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2" role="alert">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2" role="alert">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-              <span className="flex-1">{error}</span>
+              <span className="flex-1 font-medium">{error}</span>
             </div>
           )}
 
           <div className="hotel-field">
-            <label htmlFor="email" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-slate-400" />
-              <span>Email Address</span>
+            <label htmlFor="identifier" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-slate-400" />
+              <span>Username or Email Address</span>
             </label>
             <input
-              id="email"
-              type="email"
+              id="identifier"
+              type="text"
               autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="hotel-input"
-              placeholder="super_admin@gmail.com"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className="hotel-input text-xs"
+              placeholder="e.g. waiter_ravi or admin"
               required
             />
           </div>
@@ -92,7 +159,7 @@ export default function Login() {
           <div className="hotel-field">
             <label htmlFor="password" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-slate-400" />
-              <span>Security Password</span>
+              <span>Workstation Password</span>
             </label>
             <div className="relative">
               <input
@@ -101,8 +168,8 @@ export default function Login() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="hotel-input pr-10"
-                placeholder="Enter your password"
+                className="hotel-input text-xs pr-10"
+                placeholder="Enter password"
                 required
               />
               <button
@@ -121,11 +188,44 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="hotel-button hotel-button-emerald w-full justify-center text-sm font-bold"
+              className="hotel-button hotel-button-emerald w-full justify-center text-xs font-bold py-2.5 rounded-xl shadow-sm"
             >
               <span>{loading ? 'Authenticating...' : 'Sign In to Shift'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Quick Demo Credentials Pill Bar */}
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
+              Quick Workstation Switcher
+            </p>
+            <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setPreset('admin', 'Admin@123')}
+                className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-center flex flex-col items-center gap-0.5 transition-colors"
+              >
+                <Shield className="w-3 h-3 text-blue-600" />
+                <span>Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreset('waiter_ravi', 'password123')}
+                className="p-1.5 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100 text-amber-900 font-semibold text-center flex flex-col items-center gap-0.5 transition-colors"
+              >
+                <Smartphone className="w-3 h-3 text-amber-600" />
+                <span>Waiter</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreset('maid_priya', 'password123')}
+                className="p-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 font-semibold text-center flex flex-col items-center gap-0.5 transition-colors"
+              >
+                <Sparkles className="w-3 h-3 text-emerald-600" />
+                <span>Maid</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

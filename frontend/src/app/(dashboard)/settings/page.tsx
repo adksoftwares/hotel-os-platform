@@ -6,7 +6,7 @@ import { Panel } from '@/components/ui/Panel';
 import { Modal } from '@/components/ui/Modal';
 import { 
   ShieldCheck, Key, Plus, Lock, 
-  Receipt, BedDouble, Utensils, AlertTriangle, Check
+  Receipt, BedDouble, Utensils, Users, AlertTriangle, Check
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -32,11 +32,31 @@ export default function PlatformSettings() {
     <div className="hotel-page">
       <PageHeader
         title="Hotel OS Configuration & Security"
-        description="Property metadata, tax master settings, audit permissions, and delegated support sessions."
+        description="Property metadata, staff account credentials, tax settings, and audit permissions."
       />
 
       {/* Quick Settings Configuration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Link
+          href="/settings/staff"
+          className="hotel-panel p-4 hover:border-slate-300 hover:shadow-xs transition-all group block border-blue-200/80 bg-blue-50/20"
+        >
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-700">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 group-hover:text-indigo-800">
+                Staff Accounts
+              </h3>
+              <p className="text-[11px] text-slate-500">Waiters & Maids logins & passwords</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-indigo-800 mt-3 inline-block">
+            Manage Staff Accounts →
+          </span>
+        </Link>
+
         <Link
           href="/settings/tax"
           className="hotel-panel p-4 hover:border-slate-300 hover:shadow-xs transition-all group block"

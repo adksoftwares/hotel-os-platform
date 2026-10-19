@@ -59,11 +59,21 @@ export default function WaiterHandheldPOS() {
 
   const [selectedTable, setSelectedTable] = useState('Table 2');
   const [guestCovers, setGuestCovers] = useState(2);
-  const [waiterName] = useState('Captain Rajesh');
+  const [waiterName, setWaiterName] = useState('Captain Rajesh');
   const [activeTab, setActiveTab] = useState<'All' | 'Starters' | 'Mains' | 'Desserts' | 'Beverages'>('All');
   const [searchFilter, setSearchFilter] = useState('');
   const [holdMains, setHoldMains] = useState(true);
   const [catalog, setCatalog] = useState<MenuItem[]>(MENU_CATALOG);
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('user');
+      if (u) {
+        const parsed = JSON.parse(u);
+        if (parsed.name) setWaiterName(parsed.name);
+      }
+    } catch (_) {}
+  }, []);
 
   const loadWaiterCatalog = () => {
     try {
