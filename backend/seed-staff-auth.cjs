@@ -12,7 +12,6 @@ async function run() {
   }
 
   const superHash = await bcrypt.hash('Super@123', 10);
-  const adminHash = await bcrypt.hash('Admin@123', 10);
   const hotel001Hash = await bcrypt.hash('hotel001', 10);
 
   // 1. superadmin@hotel.com
@@ -46,19 +45,13 @@ async function run() {
     }
   });
 
-  // 3. admin@hotel.com
-  await prisma.user.upsert({
-    where: { email: 'admin@hotel.com' },
-    update: { passwordHash: adminHash, role: 'ADMIN', username: 'admin', isActive: true },
-    create: {
-      email: 'admin@hotel.com',
-      username: 'admin',
-      firstName: 'Hotel',
-      lastName: 'Administrator',
-      passwordHash: adminHash,
-      role: 'ADMIN',
-      isActive: true,
-      propertyId: property.id
+  // 3. Purge fake demo admin@hotel.com from database
+  await prisma.user.deleteMany({
+    where: {
+      OR: [
+        { email: 'admin@hotel.com' },
+        { username: 'admin' }
+      ]
     }
   });
 
@@ -78,7 +71,7 @@ async function run() {
     }
   });
 
-  console.log('SUCCESS_SEEDED');
+  console.log('SUCCESS_PURGED_AND_SEEDED');
   const all = await prisma.user.findMany({ select: { id: true, email: true, username: true, role: true, isActive: true } });
   console.log(JSON.stringify(all, null, 2));
 }

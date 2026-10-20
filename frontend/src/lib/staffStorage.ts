@@ -20,7 +20,7 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
     id: 'STF-SA01',
     firstName: 'Super',
     lastName: 'Admin',
-    phone: '+91 99999 00000',
+    phone: '',
     email: 'superadmin@hotel.com',
     username: 'superadmin',
     password: 'Super@123',
@@ -31,29 +31,15 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
     lastLogin: '2026-10-19 17:30',
   },
   {
-    id: 'STF-A01',
-    firstName: 'Hotel',
-    lastName: 'Administrator',
-    phone: '+91 98400 00000',
-    email: 'admin@hotel.com',
-    username: 'admin',
-    password: 'Admin@123',
-    role: 'ADMIN',
-    property: 'Main Hotel Property',
-    isActive: true,
-    createdAt: '2026-10-01',
-    lastLogin: '2026-10-19 17:00',
-  },
-  {
     id: 'STF-A02',
     firstName: 'Hotel',
     lastName: 'Admin 001',
-    phone: '+91 98400 11111',
+    phone: '',
     email: 'hotel001@hotel.com',
     username: 'hotel001',
     password: 'hotel001',
     role: 'ADMIN',
-    property: 'Main Hotel Property',
+    property: 'Grand ADK Hotel',
     isActive: true,
     createdAt: '2026-10-20',
     lastLogin: '2026-10-20 18:00',
@@ -69,14 +55,28 @@ export const loadStaffAccounts = (): StaffAccount[] => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Purge fake mock staff accounts
-        const fakeUsernames = ['waiter_ravi', 'waiter_sanjay', 'maid_priya', 'maid_anitha', 'admin_meenakshi'];
-        const clean = parsed.filter((p: StaffAccount) => !fakeUsernames.includes(p.username.toLowerCase()));
-        
+        // Purge fake mock staff accounts (including demo STF-A01 / admin@hotel.com)
+        const fakeIdentifiers = [
+          'admin',
+          'stf-a01',
+          'admin@hotel.com',
+          'waiter_ravi',
+          'waiter_sanjay',
+          'maid_priya',
+          'maid_anitha',
+          'admin_meenakshi'
+        ];
+        const clean = parsed.filter(
+          (p: StaffAccount) =>
+            !fakeIdentifiers.includes((p.username || '').toLowerCase()) &&
+            !fakeIdentifiers.includes((p.email || '').toLowerCase()) &&
+            (p.id || '').toUpperCase() !== 'STF-A01'
+        );
+
         // Ensure Super Admin exists
         const hasSuperAdmin = clean.some((p: StaffAccount) => p.role === 'SUPER_ADMIN' || p.username === 'superadmin');
         const finalAccounts = hasSuperAdmin ? clean : [...INITIAL_STAFF_ACCOUNTS.filter(a => a.role === 'SUPER_ADMIN'), ...clean];
-        
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(finalAccounts));
         return finalAccounts;
       }
@@ -120,25 +120,25 @@ export const createStaffAccount = (
   return newAccount;
 };
 
-export const updateStaffAccount = (
-  id: string,
-  updates: Partial<Omit<StaffAccount, 'id' | 'createdAt'>>
-) => {
+export const updateStaffAccount = (id: string, updates: Partial<StaffAccount>): boolean => {
   const accounts = loadStaffAccounts();
-  const updated = accounts.map((acc) => (acc.id === id ? { ...acc, ...updates } : acc));
-  saveStaffAccounts(updated);
+  const index = accounts.findIndex((a) => a.id === id);
+  if (index === -1) return false;
+
+  accounts[index] = { ...accounts[index], ...updates };
+  saveStaffAccounts(accounts);
+  return true;
 };
 
-export const resetStaffPassword = (id: string, newPassword: string) => {
-  const accounts = loadStaffAccounts();
-  const updated = accounts.map((acc) =>
-    acc.id === id ? { ...acc, password: newPassword } : acc
-  );
-  saveStaffAccounts(updated);
+export const resetStaffPassword = (id: string, newPass: string): boolean => {
+  return updateStaffAccount(id, { password: newPass });
 };
 
-export const deleteStaffAccount = (id: string) => {
+export const deleteStaffAccount = (id: string): boolean => {
   const accounts = loadStaffAccounts();
-  const updated = accounts.filter((acc) => acc.id !== id);
-  saveStaffAccounts(updated);
+  const filtered = accounts.filter((a) => a.id !== id);
+  if (filtered.length === accounts.length) return false;
+
+  saveStaffAccounts(filtered);
+  return true;
 };

@@ -393,8 +393,8 @@ export default function StaffManagementPage() {
   // Delete staff
   const handleDeleteConfirm = () => {
     if (!selectedStaff) return;
-    if (selectedStaff.role === 'ADMIN' && adminCount <= 1) {
-      toast('Cannot delete the last remaining Hotel Administrator account.', 'error');
+    if (selectedStaff.role === 'SUPER_ADMIN') {
+      toast('Cannot delete Super Administrator account.', 'error');
       setShowDeleteModal(false);
       return;
     }
