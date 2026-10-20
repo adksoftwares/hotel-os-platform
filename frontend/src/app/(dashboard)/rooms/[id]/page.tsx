@@ -10,13 +10,23 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
   const [room, setRoom] = useState<RoomItem | null>(null);
 
   useEffect(() => {
-    const fleet = loadHotelRoomsFleet();
-    const found = fleet.find(r => r.id === id || r.roomNumber === id);
-    if (found) {
-      setRoom(found);
-    }
+    const fetchRoom = () => {
+      const fleet = loadHotelRoomsFleet();
+      const found = fleet.find(r => r.id === id || r.roomNumber === id);
+      if (found) {
+        setRoom(found);
+      }
+    };
+    fetchRoom();
+    window.addEventListener('storage', fetchRoom);
+    window.addEventListener('hotel_rooms_changed', fetchRoom);
+    return () => {
+      window.removeEventListener('storage', fetchRoom);
+      window.removeEventListener('hotel_rooms_changed', fetchRoom);
+    };
   }, [id]);
 
+  const defaultFacilities = ['AC', 'WiFi', 'TV'];
   const roomInfo = {
     id: room ? room.roomNumber : id,
     type: room ? room.type : 'Standard Room',
@@ -24,7 +34,7 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     floor: room ? room.floor : 1,
     status: room ? room.occupancy : 'Vacant',
     housekeeping: room ? room.housekeeping : 'Clean',
-    facilities: ['AC', 'High-Speed WiFi', 'Work Desk', 'Ensuite Bathroom'],
+    facilities: room?.facilities && room.facilities.length > 0 ? room.facilities : defaultFacilities,
   };
 
   const tabs = [

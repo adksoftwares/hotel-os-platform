@@ -48,6 +48,7 @@ export default function AddRoomPage() {
       housekeeping: 'Clean' as const,
       operational: 'In Service' as const,
       pricePerNight: formData.roomType === 'Presidential' ? 750 : formData.roomType === 'Suite' ? 350 : formData.roomType === 'Deluxe' ? 220 : 160,
+      facilities: formData.facilities && formData.facilities.length > 0 ? formData.facilities : ['AC', 'WiFi', 'TV'],
     };
     try {
       const currentFleet = loadHotelRoomsFleet();

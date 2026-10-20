@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { 
   Sparkles, Plus, Search, Filter, Wrench, 
   CheckCircle2, BedDouble, AlertCircle, RefreshCw, 
-  ExternalLink, UserCheck, ShieldCheck, Trash2, X, AlertTriangle, Pencil
+  ExternalLink, UserCheck, ShieldCheck, Trash2, X, AlertTriangle, Pencil, Check
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -13,7 +13,8 @@ import { Panel } from '@/components/ui/Panel';
 import { 
   RoomItem, 
   loadHotelRoomsFleet, 
-  saveHotelRoomsFleet 
+  saveHotelRoomsFleet,
+  POPULAR_FACILITIES
 } from '@/lib/hotelRoomsFleet';
 
 export default function RoomBoardPage() {
@@ -25,6 +26,7 @@ export default function RoomBoardPage() {
   const [deleteTarget, setDeleteTarget] = useState<RoomItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [editingRoom, setEditingRoom] = useState<RoomItem | null>(null);
+  const [customFacility, setCustomFacility] = useState('');
 
   // Load persisted rooms from localStorage
   const loadRooms = () => {
@@ -63,6 +65,34 @@ export default function RoomBoardPage() {
     setShowClearConfirm(false);
   };
 
+  const openEditModal = (room: RoomItem) => {
+    setEditingRoom({
+      ...room,
+      facilities: room.facilities && room.facilities.length > 0 ? [...room.facilities] : ['AC', 'WiFi', 'TV'],
+    });
+    setCustomFacility('');
+  };
+
+  const toggleEditingFacility = (facility: string) => {
+    if (!editingRoom) return;
+    const current = editingRoom.facilities || [];
+    const updated = current.includes(facility)
+      ? current.filter(f => f !== facility)
+      : [...current, facility];
+    setEditingRoom({ ...editingRoom, facilities: updated });
+  };
+
+  const handleAddCustomFacility = () => {
+    if (!editingRoom) return;
+    const trimmed = customFacility.trim();
+    if (!trimmed) return;
+    const current = editingRoom.facilities || [];
+    if (!current.includes(trimmed)) {
+      setEditingRoom({ ...editingRoom, facilities: [...current, trimmed] });
+    }
+    setCustomFacility('');
+  };
+
   const handleSaveEditRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRoom) return;
@@ -74,6 +104,7 @@ export default function RoomBoardPage() {
       roomNumber: num,
       floor: Number(editingRoom.floor) || 1,
       pricePerNight: Number(editingRoom.pricePerNight) || 160,
+      facilities: editingRoom.facilities || [],
     } : r);
     
     saveRooms(updated);
@@ -287,7 +318,7 @@ export default function RoomBoardPage() {
                     <StatusBadge status={room.occupancy} size="sm" />
                     <button
                       type="button"
-                      onClick={() => setEditingRoom({ ...room })}
+                      onClick={() => openEditModal(room)}
                       className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors"
                       title={`Edit Room ${room.roomNumber} Details`}
                       aria-label={`Edit Room ${room.roomNumber}`}
@@ -337,6 +368,25 @@ export default function RoomBoardPage() {
                       <StatusBadge status={room.operational} size="sm" />
                     </div>
                   </div>
+
+                  {/* Facilities Badges */}
+                  {room.facilities && room.facilities.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-1 items-center">
+                      {room.facilities.slice(0, 4).map((f) => (
+                        <span
+                          key={f}
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200/70"
+                        >
+                          {f}
+                        </span>
+                      ))}
+                      {room.facilities.length > 4 && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200/50">
+                          +{room.facilities.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Operational Action Buttons Bar */}
@@ -375,7 +425,7 @@ export default function RoomBoardPage() {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setEditingRoom({ ...room })}
+                      onClick={() => openEditModal(room)}
                       className="px-2 py-1 rounded bg-white border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] font-medium transition-colors flex items-center gap-1"
                       title="Edit Room Details"
                     >
@@ -503,7 +553,7 @@ export default function RoomBoardPage() {
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
             onClick={() => setEditingRoom(null)}
           />
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full p-6 z-10 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 z-10 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
@@ -619,6 +669,81 @@ export default function RoomBoardPage() {
                   <option value="Occupied">Occupied</option>
                   <option value="Reserved">Reserved</option>
                 </select>
+              </div>
+
+              {/* Facilities & Amenities Section */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-700 font-semibold">Facilities & Amenities</label>
+                  <span className="text-[11px] text-slate-400">Click badges to toggle</span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {POPULAR_FACILITIES.map((facility) => {
+                    const active = (editingRoom.facilities || []).includes(facility);
+                    return (
+                      <button
+                        key={facility}
+                        type="button"
+                        onClick={() => toggleEditingFacility(facility)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
+                          active
+                            ? 'bg-blue-50 border-blue-300 text-blue-700 font-semibold shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                        }`}
+                      >
+                        {active ? (
+                          <Check className="w-3 h-3 text-blue-600 shrink-0" />
+                        ) : (
+                          <Plus className="w-3 h-3 text-slate-400 shrink-0" />
+                        )}
+                        <span>{facility}</span>
+                      </button>
+                    );
+                  })}
+
+                  {/* Custom user-added facilities not in POPULAR_FACILITIES */}
+                  {(editingRoom.facilities || [])
+                    .filter((f) => !POPULAR_FACILITIES.includes(f))
+                    .map((customF) => (
+                      <button
+                        key={customF}
+                        type="button"
+                        onClick={() => toggleEditingFacility(customF)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold border bg-emerald-50 border-emerald-300 text-emerald-800 flex items-center gap-1.5 cursor-pointer shadow-xs group"
+                        title="Click to remove custom amenity"
+                      >
+                        <Check className="w-3 h-3 text-emerald-600 shrink-0 group-hover:hidden" />
+                        <X className="w-3 h-3 text-rose-500 shrink-0 hidden group-hover:block" />
+                        <span>{customF}</span>
+                      </button>
+                    ))}
+                </div>
+
+                {/* Add custom amenity */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <input
+                    type="text"
+                    value={customFacility}
+                    onChange={(e) => setCustomFacility(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomFacility();
+                      }
+                    }}
+                    placeholder="Add custom facility (e.g. Balcony View, Jacuzzi)..."
+                    className="hotel-input flex-1 text-xs py-1.5 px-2.5"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomFacility}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors shrink-0 flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add</span>
+                  </button>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">

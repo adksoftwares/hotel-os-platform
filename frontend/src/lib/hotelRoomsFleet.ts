@@ -9,7 +9,21 @@ export interface RoomItem {
   currentGuest?: string;
   reservation?: string;
   pricePerNight: number;
+  facilities?: string[];
 }
+
+export const POPULAR_FACILITIES = [
+  'AC',
+  'WiFi',
+  'TV',
+  'Mini Bar',
+  'Safe',
+  'Balcony',
+  'Bathtub',
+  'Room Service',
+  'Coffee Maker',
+  'Work Desk',
+];
 
 export const SAMPLE_ROOMS_FLEET: RoomItem[] = [];
 
