@@ -3,13 +3,13 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Building2, Lock, User, AlertCircle, ArrowRight, 
-  Eye, EyeOff, Smartphone, Sparkles, Shield, Crown
+  Eye, EyeOff
 } from 'lucide-react';
 import { loadStaffAccounts, StaffAccount } from '@/lib/staffStorage';
 
 export default function Login() {
-  const [identifier, setIdentifier] = useState('superadmin');
-  const [password, setPassword] = useState('Super@123');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -139,12 +139,6 @@ export default function Login() {
     }
   };
 
-  const setPreset = (userVal: string, passVal: string) => {
-    setIdentifier(userVal);
-    setPassword(passVal);
-    setError('');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 select-none">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/90 overflow-hidden">
@@ -223,33 +217,6 @@ export default function Login() {
               <span>{loading ? 'Authenticating...' : 'Sign In to Shift'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-          </div>
-
-          {/* Quick Demo Credentials Pill Bar */}
-          <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
-              Quick Workstation Switcher
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setPreset('superadmin', 'Super@123')}
-                className="p-2 rounded-xl border border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-purple-900 font-semibold text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                title="Super Admin (Corporate HQ)"
-              >
-                <Crown className="w-3.5 h-3.5 text-purple-600" />
-                <span>Super Admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreset('admin', 'Admin@123')}
-                className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                title="Hotel Administrator"
-              >
-                <Shield className="w-3.5 h-3.5 text-blue-600" />
-                <span>Hotel Admin</span>
-              </button>
-            </div>
           </div>
         </form>
       </div>
