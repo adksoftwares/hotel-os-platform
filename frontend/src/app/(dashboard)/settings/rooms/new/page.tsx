@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, ArrowRight, Building, Layers, Bed, Sparkles, X } from 'lucide-react';
+import { loadHotelRoomsFleet, saveHotelRoomsFleet } from '@/lib/hotelRoomsFleet';
 
 export default function AddRoomPage() {
   const router = useRouter();
@@ -49,11 +50,10 @@ export default function AddRoomPage() {
       pricePerNight: formData.roomType === 'Presidential' ? 750 : formData.roomType === 'Suite' ? 350 : formData.roomType === 'Deluxe' ? 220 : 160,
     };
     try {
-      const existing = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
-      const filtered = Array.isArray(existing) ? existing.filter((r: any) => r.roomNumber !== roomNum) : [];
+      const currentFleet = loadHotelRoomsFleet();
+      const filtered = currentFleet.filter((r) => r.roomNumber !== roomNum && r.id !== roomNum);
       const updated = [...filtered, newRoomItem];
-      localStorage.setItem('hotel_room_board_state', JSON.stringify(updated));
-      window.dispatchEvent(new Event('hotel_rooms_changed'));
+      saveHotelRoomsFleet(updated);
     } catch (_) {}
 
     setShowSuccessModal(true);

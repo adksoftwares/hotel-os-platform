@@ -47,10 +47,7 @@ export default function RoomBoardPage() {
 
   const saveRooms = (newRooms: RoomItem[]) => {
     setRooms(newRooms);
-    try {
-      localStorage.setItem('hotel_room_board_state', JSON.stringify(newRooms));
-      window.dispatchEvent(new Event('hotel_rooms_changed'));
-    } catch (e) {}
+    saveHotelRoomsFleet(newRooms);
   };
 
   const handleConfirmDelete = () => {

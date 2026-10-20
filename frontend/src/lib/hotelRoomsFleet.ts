@@ -13,8 +13,6 @@ export interface RoomItem {
 
 export const SAMPLE_ROOMS_FLEET: RoomItem[] = [];
 
-const FAKE_SAMPLE_IDS = new Set(['101', '102', '103', '104', '201', '202', '203', '204', '301', '302', '303', '401']);
-
 export const loadHotelRoomsFleet = (): RoomItem[] => {
   if (typeof window === 'undefined') return [];
   try {
@@ -22,15 +20,9 @@ export const loadHotelRoomsFleet = (): RoomItem[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        // Strip out fake sample seeded rooms if present
-        const cleaned = parsed.filter((r: RoomItem) => !FAKE_SAMPLE_IDS.has(String(r.id)) && !FAKE_SAMPLE_IDS.has(String(r.roomNumber)));
-        if (cleaned.length !== parsed.length) {
-          localStorage.setItem('hotel_room_board_state', JSON.stringify(cleaned));
-        }
-        return cleaned;
+        return parsed;
       }
     }
-    localStorage.setItem('hotel_room_board_state', JSON.stringify([]));
   } catch (_) {}
   return [];
 };
@@ -39,6 +31,7 @@ export const saveHotelRoomsFleet = (data: RoomItem[]) => {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem('hotel_room_board_state', JSON.stringify(data));
-    window.dispatchEvent(new CustomEvent('hotel_rooms_changed'));
+    window.dispatchEvent(new CustomEvent('hotel_rooms_changed', { detail: data }));
+    window.dispatchEvent(new Event('hotel_rooms_changed'));
   } catch (_) {}
 };
