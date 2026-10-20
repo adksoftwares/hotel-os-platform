@@ -1,35 +1,63 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bed, TrendingUp, Users, Calendar, Download, 
   Printer, ArrowUpRight, BarChart2, PieChart, ShieldCheck, FileSpreadsheet
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-
-const roomTiers = [
-  { tier: 'Deluxe King Suites', totalRooms: 4, occupied: 4, occupancyRate: 100, adr: 220.00, revPar: 220.00 },
-  { tier: 'Standard Queen', totalRooms: 3, occupied: 2, occupancyRate: 67, adr: 140.00, revPar: 93.80 },
-  { tier: 'Executive Suites', totalRooms: 2, occupied: 2, occupancyRate: 100, adr: 350.00, revPar: 350.00 },
-  { tier: 'Presidential Suite', totalRooms: 1, occupied: 1, occupancyRate: 100, adr: 800.00, revPar: 800.00 },
-];
+import { loadHotelRoomsFleet, RoomItem } from '@/lib/hotelRoomsFleet';
 
 const weeklyOccupancy = [
-  { day: 'Mon', rate: 65 },
-  { day: 'Tue', rate: 70 },
-  { day: 'Wed', rate: 75 },
-  { day: 'Thu', rate: 82 },
-  { day: 'Fri', rate: 95 },
-  { day: 'Sat', rate: 100 },
-  { day: 'Sun', rate: 90 },
+  { day: 'Mon', rate: 0 },
+  { day: 'Tue', rate: 0 },
+  { day: 'Wed', rate: 0 },
+  { day: 'Thu', rate: 0 },
+  { day: 'Fri', rate: 0 },
+  { day: 'Sat', rate: 0 },
+  { day: 'Sun', rate: 0 },
 ];
 
 export default function OccupancyReport() {
   const { toast } = useToast();
+  const [fleet, setFleet] = useState<RoomItem[]>([]);
+
+  useEffect(() => {
+    setFleet(loadHotelRoomsFleet());
+  }, []);
+
+  const roomTiers = useMemo(() => {
+    const groups: Record<string, { totalRooms: number; occupied: number; totalPrice: number }> = {};
+    fleet.forEach(r => {
+      const type = r.type || 'Standard';
+      if (!groups[type]) {
+        groups[type] = { totalRooms: 0, occupied: 0, totalPrice: 0 };
+      }
+      groups[type].totalRooms += 1;
+      if (r.occupancy === 'Occupied') {
+        groups[type].occupied += 1;
+      }
+      groups[type].totalPrice += (r.pricePerNight || 0);
+    });
+
+    return Object.entries(groups).map(([tier, data]) => {
+      const occupancyRate = data.totalRooms > 0 ? Math.round((data.occupied / data.totalRooms) * 100) : 0;
+      const adr = data.totalRooms > 0 ? (data.totalPrice / data.totalRooms) : 0;
+      const revPar = (adr * occupancyRate) / 100;
+      return {
+        tier,
+        totalRooms: data.totalRooms,
+        occupied: data.occupied,
+        occupancyRate,
+        adr,
+        revPar,
+      };
+    });
+  }, [fleet]);
 
   const totalRooms = roomTiers.reduce((acc, t) => acc + t.totalRooms, 0);
   const totalOccupied = roomTiers.reduce((acc, t) => acc + t.occupied, 0);
-  const overallOccupancy = Math.round((totalOccupied / totalRooms) * 100);
-  const averageRevPar = (roomTiers.reduce((acc, t) => acc + (t.revPar * t.totalRooms), 0) / totalRooms);
+  const overallOccupancy = totalRooms > 0 ? Math.round((totalOccupied / totalRooms) * 100) : 0;
+  const averageRevPar = totalRooms > 0 ? (roomTiers.reduce((acc, t) => acc + (t.revPar * t.totalRooms), 0) / totalRooms) : 0;
 
   const exportCSV = () => {
     const headers = 'RoomCategory,TotalInventory,Occupied,OccupancyRate,ADR,RevPAR\n';
@@ -150,26 +178,34 @@ export default function OccupancyReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {roomTiers.map((tier, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="p-4 font-bold text-slate-900">{tier.tier}</td>
-                  <td className="p-4 text-slate-600">{tier.totalRooms} Units</td>
-                  <td className="p-4 font-semibold text-slate-800">{tier.occupied} Units</td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div 
-                          style={{ width: `${tier.occupancyRate}%` }} 
-                          className={`h-full rounded-full ${tier.occupancyRate === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
-                        />
-                      </div>
-                      <span className="font-bold text-slate-800">{tier.occupancyRate}%</span>
-                    </div>
+              {roomTiers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-400">
+                    No hotel rooms configured in fleet. Go to Settings &gt; Rooms to create your first room.
                   </td>
-                  <td className="p-4 text-right font-semibold text-slate-800">Rs. {tier.adr.toFixed(2)}</td>
-                  <td className="p-4 text-right font-black text-blue-600 text-sm">Rs. {tier.revPar.toFixed(2)}</td>
                 </tr>
-              ))}
+              ) : (
+                roomTiers.map((tier, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="p-4 font-bold text-slate-900">{tier.tier}</td>
+                    <td className="p-4 text-slate-600">{tier.totalRooms} Units</td>
+                    <td className="p-4 font-semibold text-slate-800">{tier.occupied} Units</td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
+                          <div 
+                            style={{ width: `${tier.occupancyRate}%` }} 
+                            className={`h-full rounded-full ${tier.occupancyRate === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                          />
+                        </div>
+                        <span className="font-bold text-slate-800">{tier.occupancyRate}%</span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-right font-semibold text-slate-800">Rs. {tier.adr.toFixed(2)}</td>
+                    <td className="p-4 text-right font-black text-blue-600 text-sm">Rs. {tier.revPar.toFixed(2)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

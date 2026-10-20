@@ -1,21 +1,30 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { loadHotelRoomsFleet, RoomItem } from '@/lib/hotelRoomsFleet';
 
 export default function RoomDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
   const [activeTab, setActiveTab] = useState('overview');
+  const [room, setRoom] = useState<RoomItem | null>(null);
 
-  // Mock data
+  useEffect(() => {
+    const fleet = loadHotelRoomsFleet();
+    const found = fleet.find(r => r.id === id || r.roomNumber === id);
+    if (found) {
+      setRoom(found);
+    }
+  }, [id]);
+
   const roomInfo = {
-    id,
-    type: 'Suite',
-    building: 'Main',
-    floor: '2',
-    status: 'Occupied',
-    housekeeping: 'Clean',
-    facilities: ['AC', 'WiFi', 'Mini Bar', 'Bathtub'],
+    id: room ? room.roomNumber : id,
+    type: room ? room.type : 'Standard Room',
+    building: 'Main Wing',
+    floor: room ? room.floor : 1,
+    status: room ? room.occupancy : 'Vacant',
+    housekeeping: room ? room.housekeeping : 'Clean',
+    facilities: ['AC', 'High-Speed WiFi', 'Work Desk', 'Ensuite Bathroom'],
   };
 
   const tabs = [
@@ -105,22 +114,10 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
         {activeTab === 'housekeeping' && (
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Housekeeping Logs</h3>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-4">
-                <div className="w-24 flex-shrink-0 text-sm text-gray-500">Today 10:00</div>
-                <div>
-                  <p className="font-medium text-gray-900">Room Inspected</p>
-                  <p className="text-sm text-gray-500">Inspector: Maria G.</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-4">
-                <div className="w-24 flex-shrink-0 text-sm text-gray-500">Today 09:30</div>
-                <div>
-                  <p className="font-medium text-gray-900">Room Cleaned</p>
-                  <p className="text-sm text-gray-500">Cleaner: Jose M.</p>
-                </div>
-              </li>
-            </ul>
+            <div className="p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
+              <p className="text-gray-500 italic text-sm">No housekeeping logs recorded yet for this room.</p>
+              <p className="text-xs text-gray-400 mt-1">Logs will appear as housekeepers perform service.</p>
+            </div>
           </div>
         )}
 
@@ -135,17 +132,9 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
         {activeTab === 'timeline' && (
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Room Timeline</h3>
-            <div className="border-l-2 border-blue-200 ml-3 space-y-6">
-              <div className="relative pl-6">
-                <div className="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5"></div>
-                <p className="font-medium">Check-in (RES-10293)</p>
-                <p className="text-sm text-gray-500">Oct 1, 2026 14:30</p>
-              </div>
-              <div className="relative pl-6">
-                <div className="absolute w-3 h-3 bg-gray-400 rounded-full -left-[7px] top-1.5"></div>
-                <p className="font-medium">Room Inspected</p>
-                <p className="text-sm text-gray-500">Oct 1, 2026 11:15</p>
-              </div>
+            <div className="p-6 bg-gray-50 rounded-xl border border-gray-100 text-center">
+              <p className="text-gray-500 italic text-sm">No timeline activity recorded yet for this room.</p>
+              <p className="text-xs text-gray-400 mt-1">Check-ins, service requests, and inspections will be logged here chronologically.</p>
             </div>
           </div>
         )}

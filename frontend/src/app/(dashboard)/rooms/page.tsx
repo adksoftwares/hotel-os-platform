@@ -13,8 +13,7 @@ import { Panel } from '@/components/ui/Panel';
 import { 
   RoomItem, 
   loadHotelRoomsFleet, 
-  saveHotelRoomsFleet, 
-  SAMPLE_ROOMS_FLEET 
+  saveHotelRoomsFleet 
 } from '@/lib/hotelRoomsFleet';
 
 export default function RoomBoardPage() {
@@ -64,10 +63,6 @@ export default function RoomBoardPage() {
   const handleConfirmClearAll = () => {
     saveRooms([]);
     setShowClearConfirm(false);
-  };
-
-  const handleLoadDemoFleet = () => {
-    saveRooms(SAMPLE_ROOMS_FLEET);
   };
 
   const handleAction = (id: string, action: string) => {
@@ -230,13 +225,6 @@ export default function RoomBoardPage() {
               <Plus className="w-4 h-4" />
               <span>Add Your First Room</span>
             </Link>
-            <button
-              type="button"
-              onClick={handleLoadDemoFleet}
-              className="hotel-button hotel-button-secondary text-xs px-3.5 py-2"
-            >
-              <span>Load Sample Fleet</span>
-            </button>
           </div>
         </div>
       ) : filteredRooms.length === 0 ? (

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { Modal } from '@/components/ui/Modal';
 import { ReceiptModal } from '@/components/ui/ReceiptModal';
+import { loadHotelRoomsFleet, RoomItem } from '@/lib/hotelRoomsFleet';
 import { 
   Settings, Utensils, Bed, Search, Tag, Percent, ArrowRight, 
   Minus, Plus, Edit2, Trash2, LayoutGrid, Coffee, Split, 
@@ -320,7 +321,23 @@ export default function RestaurantPOS() {
   const [showSplitBill, setShowSplitBill] = useState(false);
   const [splitCount, setSplitCount] = useState(2);
   const [showRoomChargeModal, setShowRoomChargeModal] = useState(false);
-  const [selectedRoomNumber, setSelectedRoomNumber] = useState('101');
+  const [selectedRoomNumber, setSelectedRoomNumber] = useState('');
+  const [availableRooms, setAvailableRooms] = useState<RoomItem[]>([]);
+
+  useEffect(() => {
+    const refreshRooms = () => {
+      const loaded = loadHotelRoomsFleet();
+      setAvailableRooms(loaded);
+      if (loaded.length > 0) {
+        setSelectedRoomNumber(prev => (loaded.some(r => r.roomNumber === prev) ? prev : loaded[0].roomNumber));
+      } else {
+        setSelectedRoomNumber('');
+      }
+    };
+    refreshRooms();
+    window.addEventListener('hotel_rooms_changed', refreshRooms);
+    return () => window.removeEventListener('hotel_rooms_changed', refreshRooms);
+  }, []);
   
   // Item Discount Modal
   const [itemDiscountModal, setItemDiscountModal] = useState<{ isOpen: boolean, itemIndex: number, type: 'percent' | 'fixed' | 'none', value: number | '' }>({ isOpen: false, itemIndex: -1, type: 'percent', value: '' });
@@ -1535,10 +1552,15 @@ export default function RestaurantPOS() {
               onChange={(e) => setSelectedRoomNumber(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
             >
-              <option value="101">Room 101 (Deluxe King)</option>
-              <option value="102">Room 102 (Standard Queen)</option>
-              <option value="201">Room 201 (Executive Suite)</option>
-              <option value="401">Room 401 (Presidential Penthouse)</option>
+              {availableRooms.length === 0 ? (
+                <option value="" disabled>No rooms configured in hotel</option>
+              ) : (
+                availableRooms.map((r) => (
+                  <option key={r.id} value={r.roomNumber}>
+                    Room {r.roomNumber} ({r.type})
+                  </option>
+                ))
+              )}
             </select>
           </div>
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 flex justify-between font-bold">

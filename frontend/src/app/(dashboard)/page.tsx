@@ -101,7 +101,7 @@ const computeLiveOperationalState = (): LiveOperationalMetrics => {
 
   // 1. Live Rooms & Housekeeping
   const rooms = loadHotelRoomsFleet();
-  const totalRooms = rooms.length > 0 ? rooms.length : 12;
+  const totalRooms = rooms.length;
   const occupiedRooms = rooms.filter(r => r.occupancy === 'Occupied').length;
   const vacantRooms = rooms.filter(r => r.occupancy === 'Vacant').length;
   const reservedRooms = rooms.filter(r => r.occupancy === 'Reserved').length;

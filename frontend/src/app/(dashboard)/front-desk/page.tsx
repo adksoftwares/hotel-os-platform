@@ -273,7 +273,7 @@ export default function FrontDesk() {
               <p className="text-xs font-semibold text-slate-700">RFID Encoder Station 1</p>
               <p className="text-[11px] text-slate-400">Place hotel keycard on the desk pad to encode room credentials.</p>
               <button
-                onClick={() => toast('Keycard NFC Token programmed for Room 201!', 'success')}
+                onClick={() => toast('Keycard NFC Token encoded successfully!', 'success')}
                 className="w-full py-2 bg-slate-900 hover:bg-black text-white rounded-lg text-xs font-semibold transition-colors mt-2"
               >
                 Encode Test Keycard
