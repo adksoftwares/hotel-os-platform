@@ -97,30 +97,53 @@ export default function BillingDashboard() {
     } catch (_) {}
   };
 
-  const handleCreateFolio = () => {
+  // Create Folio Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newFolioData, setNewFolioData] = useState({
+    guest: '',
+    room: '',
+    description: 'Room Rental Charges',
+    amount: '',
+  });
+
+  const handleOpenCreateModal = () => {
+    setNewFolioData({ guest: '', room: '', description: 'Room Stay & Incidental Deposit', amount: '' });
+    setShowCreateModal(true);
+  };
+
+  const handleConfirmCreateFolio = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFolioData.guest.trim()) {
+      toast('Guest or Account name is required.', 'error');
+      return;
+    }
+    const amountVal = Number(newFolioData.amount) || 0;
     const todayStr = new Date().toISOString().split('T')[0];
     const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const newId = `FOL-${Math.random().toString(16).substr(2, 4).toUpperCase()}`;
+
     const newFolio: FolioItem = { 
       id: newId, 
-      guest: 'Corporate Master Account', 
-      room: 'Conference Center', 
-      roomType: 'Master Billing',
+      guest: newFolioData.guest.trim(), 
+      room: newFolioData.room.trim() || 'General', 
+      roomType: 'Hotel Folio',
       checkIn: todayStr,
       checkOut: tomorrowStr,
       nights: 1,
       status: 'OPEN', 
-      balance: 450.00,
-      totalCharges: 450.00,
+      balance: amountVal,
+      totalCharges: amountVal,
       paidAmount: 0,
-      charges: [
-        { date: todayStr, description: 'Conference Room Rental & Projector', amount: 450.00 }
-      ]
+      charges: amountVal > 0 ? [
+        { date: todayStr, description: newFolioData.description, amount: amountVal }
+      ] : []
     };
+
     const updated = [newFolio, ...folios];
     saveFolios(updated);
     setSelectedFolio(newFolio);
-    toast(`Master Folio ${newId} created successfully.`, 'success');
+    setShowCreateModal(false);
+    toast(`Folio ${newId} created for ${newFolio.guest}.`, 'success');
   };
 
   const handleSettle = (method: string) => {
@@ -151,7 +174,32 @@ export default function BillingDashboard() {
       toast('Please provide an official refund reason.', 'error');
       return;
     }
-    toast(`${refundAction?.type} processed for Folio ${refundAction?.id}. Audit log recorded.`, 'info');
+    const targetId = refundAction?.id;
+    const actionType = refundAction?.type || 'Refund';
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const updated = folios.map(f => {
+      if (f.id === targetId) {
+        const refundAmt = f.paidAmount > 0 ? f.paidAmount : f.balance;
+        const newPaid = actionType === 'Void' ? 0 : Math.max(0, f.paidAmount - refundAmt);
+        const newCharges = [...f.charges, { date: todayStr, description: `${actionType}: ${refundReason}`, amount: -refundAmt }];
+        return {
+          ...f,
+          status: 'PARTIALLY_SETTLED' as const,
+          paidAmount: newPaid,
+          balance: Math.max(0, f.totalCharges - newPaid),
+          charges: newCharges,
+        };
+      }
+      return f;
+    });
+
+    saveFolios(updated);
+    if (selectedFolio && selectedFolio.id === targetId) {
+      const match = updated.find(u => u.id === targetId);
+      if (match) setSelectedFolio(match);
+    }
+    toast(`${actionType} processed for Folio ${targetId}. Ledger updated.`, 'info');
     setRefundAction(null);
     setRefundReason('');
   };
@@ -221,13 +269,13 @@ export default function BillingDashboard() {
             <span>Shift Balancing (X/Z-Report)</span>
           </button>
 
-          {/* Create Master Folio */}
+          {/* Create Folio */}
           <button 
-            onClick={handleCreateFolio} 
+            onClick={handleOpenCreateModal} 
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Create Master Folio</span>
+            <span>+ Create Folio</span>
           </button>
         </div>
       </div>
@@ -424,6 +472,61 @@ export default function BillingDashboard() {
         currencySymbol={selectedCurrency.symbol}
         currencyRate={selectedCurrency.rate}
       />
+
+      {/* Create New Folio Modal */}
+      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create New Hotel Folio">
+        <form onSubmit={handleConfirmCreateFolio} className="space-y-4 text-xs">
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">Guest or Account Name *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. John Doe or Corporate Banquet"
+              value={newFolioData.guest}
+              onChange={(e) => setNewFolioData({ ...newFolioData, guest: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Room or Department</label>
+              <input
+                type="text"
+                placeholder="e.g. 101 or Banquets"
+                value={newFolioData.room}
+                onChange={(e) => setNewFolioData({ ...newFolioData, room: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Initial Charge Amount (Rs.)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={newFolioData.amount}
+                onChange={(e) => setNewFolioData({ ...newFolioData, amount: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">Charge Description</label>
+            <input
+              type="text"
+              placeholder="e.g. Room Stay Deposit"
+              value={newFolioData.description}
+              onChange={(e) => setNewFolioData({ ...newFolioData, description: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 bg-slate-100 rounded-xl font-semibold">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold">Create Folio</button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Refund / Void Modal */}
       <Modal isOpen={!!refundAction} onClose={() => setRefundAction(null)} title={`${refundAction?.type} Transaction Authorization`}>

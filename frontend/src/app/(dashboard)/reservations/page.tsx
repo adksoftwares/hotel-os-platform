@@ -37,7 +37,7 @@ const initialReservations: Reservation[] = [];
 export default function ReservationsPage() {
   const { toast } = useToast();
   const [view, setView] = useState<'tapechart' | 'list'>('tapechart');
-  const [reservations, setReservations] = useState<Reservation[]>(initialReservations);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [selectedRes, setSelectedRes] = useState<Reservation | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,21 +68,51 @@ export default function ReservationsPage() {
     }
   };
 
+  const loadPersistedReservations = () => {
+    try {
+      const saved = localStorage.getItem('hotel_reservations');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setReservations(parsed);
+          return;
+        }
+      }
+      setReservations([]);
+    } catch (_) {
+      setReservations([]);
+    }
+  };
+
+  const saveReservations = (newResList: Reservation[]) => {
+    setReservations(newResList);
+    try {
+      localStorage.setItem('hotel_reservations', JSON.stringify(newResList));
+      window.dispatchEvent(new Event('reservations_updated'));
+    } catch (_) {}
+  };
+
   useEffect(() => {
     loadRooms();
-    const handleUpdate = () => loadRooms();
+    loadPersistedReservations();
+    const handleUpdate = () => {
+      loadRooms();
+      loadPersistedReservations();
+    };
     window.addEventListener('storage', handleUpdate);
     window.addEventListener('hotel_rooms_changed', handleUpdate);
+    window.addEventListener('reservations_updated', handleUpdate);
     window.addEventListener('focus', handleUpdate);
     return () => {
       window.removeEventListener('storage', handleUpdate);
       window.removeEventListener('hotel_rooms_changed', handleUpdate);
+      window.removeEventListener('reservations_updated', handleUpdate);
       window.removeEventListener('focus', handleUpdate);
     };
   }, []);
 
-  // Tape chart timeline dates generation (10 days starting Oct 11, 2026)
-  const baseDate = new Date(2026, 9, 11); // Oct 11, 2026
+  // Tape chart timeline dates generation (10 days starting today)
+  const baseDate = new Date();
   const timelineDates = Array.from({ length: 10 }, (_, i) => {
     const d = new Date(baseDate);
     d.setDate(baseDate.getDate() + i);
@@ -114,8 +144,8 @@ export default function ReservationsPage() {
     phone: '',
     roomNumber: '',
     roomType: 'Standard Queen',
-    checkIn: '2026-10-11',
-    checkOut: '2026-10-13',
+    checkIn: new Date().toISOString().split('T')[0],
+    checkOut: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
     ratePerNight: 160,
     advancePaid: 0,
     vip: false,
@@ -146,6 +176,20 @@ export default function ReservationsPage() {
       return;
     }
     const allocatedRoom = rooms.find(r => r.number === formData.roomNumber) || rooms[0];
+
+    // Double Booking Prevention Check
+    const hasConflict = reservations.some(
+      r => r.roomNumber === allocatedRoom.number &&
+           r.status !== 'CANCELLED' &&
+           r.status !== 'CHECKED_OUT' &&
+           !(formData.checkOut <= r.checkIn || formData.checkIn >= r.checkOut)
+    );
+
+    if (hasConflict) {
+      toast(`Room ${allocatedRoom.number} is already booked for these dates! Please choose another room or date.`, 'error');
+      return;
+    }
+
     const checkInDate = new Date(formData.checkIn);
     const checkOutDate = new Date(formData.checkOut);
     const nights = Math.max(1, Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24)));
@@ -167,13 +211,37 @@ export default function ReservationsPage() {
       vip: formData.vip,
     };
 
-    setReservations([newRes, ...reservations]);
+    saveReservations([newRes, ...reservations]);
     setShowNewModal(false);
     toast(`Reservation ${newRes.id} confirmed for ${newRes.guestName}!`, 'success');
   };
 
   const handleCheckIn = (resId: string) => {
-    setReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'CHECKED_IN' } : r));
+    const updated = reservations.map(r => r.id === resId ? { ...r, status: 'CHECKED_IN' as const } : r);
+    saveReservations(updated);
+
+    const target = reservations.find(r => r.id === resId);
+    if (target) {
+      try {
+        const roomBoard = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
+        if (Array.isArray(roomBoard)) {
+          const updatedFleet = roomBoard.map((r: any) => {
+            if (String(r.roomNumber || r.id) === String(target.roomNumber)) {
+              return {
+                ...r,
+                occupancy: 'Occupied',
+                currentGuest: target.guestName,
+                reservation: target.id,
+              };
+            }
+            return r;
+          });
+          localStorage.setItem('hotel_room_board_state', JSON.stringify(updatedFleet));
+          window.dispatchEvent(new Event('hotel_rooms_changed'));
+        }
+      } catch (_) {}
+    }
+
     if (selectedRes && selectedRes.id === resId) {
       setSelectedRes({ ...selectedRes, status: 'CHECKED_IN' });
     }
@@ -181,7 +249,32 @@ export default function ReservationsPage() {
   };
 
   const handleCheckOut = (resId: string) => {
-    setReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'CHECKED_OUT' } : r));
+    const updated = reservations.map(r => r.id === resId ? { ...r, status: 'CHECKED_OUT' as const } : r);
+    saveReservations(updated);
+
+    const target = reservations.find(r => r.id === resId);
+    if (target) {
+      try {
+        const roomBoard = JSON.parse(localStorage.getItem('hotel_room_board_state') || '[]');
+        if (Array.isArray(roomBoard)) {
+          const updatedFleet = roomBoard.map((r: any) => {
+            if (String(r.roomNumber || r.id) === String(target.roomNumber)) {
+              return {
+                ...r,
+                occupancy: 'Vacant',
+                housekeeping: 'Dirty',
+                currentGuest: undefined,
+                reservation: 'None',
+              };
+            }
+            return r;
+          });
+          localStorage.setItem('hotel_room_board_state', JSON.stringify(updatedFleet));
+          window.dispatchEvent(new Event('hotel_rooms_changed'));
+        }
+      } catch (_) {}
+    }
+
     if (selectedRes && selectedRes.id === resId) {
       setSelectedRes({ ...selectedRes, status: 'CHECKED_OUT' });
     }
@@ -189,7 +282,7 @@ export default function ReservationsPage() {
   };
 
   const handleExtendStay = (resId: string) => {
-    setReservations(prev => prev.map(r => {
+    const updated = reservations.map(r => {
       if (r.id === resId) {
         const d = new Date(r.checkOut);
         d.setDate(d.getDate() + 1);
@@ -204,7 +297,8 @@ export default function ReservationsPage() {
         };
       }
       return r;
-    }));
+    });
+    saveReservations(updated);
     toast('Stay extended by +1 night. Folio charges updated.', 'success');
   };
 

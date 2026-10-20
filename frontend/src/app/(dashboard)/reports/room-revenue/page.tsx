@@ -65,7 +65,7 @@ export default function RoomRevenueReport() {
     const doc = new jsPDF();
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text('Grand Horizon Hotel - Room Revenue Report', 14, 20);
+    doc.text('Grand ADK Hotel - Room Revenue Report', 14, 20);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Generated on: ${new Date().toLocaleDateString()} | Total Revenue: Rs. ${grandTotal.toFixed(2)}`, 14, 28);

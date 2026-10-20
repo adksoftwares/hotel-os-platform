@@ -110,8 +110,8 @@ export function CashierShiftModal({
             
             {/* Header info */}
             <div className="text-center pb-3 border-b border-dashed border-slate-400">
-              <h3 className="font-extrabold text-sm uppercase tracking-wide">GRAND HORIZON RESORT</h3>
-              <p className="text-[11px] text-slate-600">Marina Bay Front Desk Cashier #01</p>
+              <h3 className="font-extrabold text-sm uppercase tracking-wide">GRAND ADK HOTEL</h3>
+              <p className="text-[11px] text-slate-600">Front Desk Cashier #01</p>
               <div className="mt-2 text-[10px] text-slate-500">
                 <div>DATE: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</div>
                 <div>CASHIER: Super Admin [ID #001]</div>

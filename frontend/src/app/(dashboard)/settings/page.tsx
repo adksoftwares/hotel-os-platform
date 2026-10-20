@@ -12,10 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 
 export default function PlatformSettings() {
   const { toast } = useToast();
-  const [sessions, setSessions] = useState([
-    { id: 'SUP-901F', initiatedBy: 'admin@hotel.com', expiresAt: '2026-10-12 18:00', status: 'ACTIVE' },
-    { id: 'SUP-1A3B', initiatedBy: 'manager@hotel.com', expiresAt: '2026-10-10 12:00', status: 'EXPIRED' }
-  ]);
+  const [sessions, setSessions] = useState<{ id: string; initiatedBy: string; expiresAt: string; status: string }[]>([]);
 
   const handleGrant = () => {
     const newId = `SUP-${Math.random().toString(16).substring(2, 6).toUpperCase()}`;
@@ -144,35 +141,43 @@ export default function PlatformSettings() {
               </tr>
             </thead>
             <tbody>
-              {sessions.map((session) => (
-                <tr key={session.id}>
-                  <td className="font-mono text-xs font-semibold text-slate-800">{session.id}</td>
-                  <td className="text-slate-600 text-xs">{session.initiatedBy}</td>
-                  <td className="text-slate-500 text-xs">{session.expiresAt}</td>
-                  <td>
-                    {session.status === 'ACTIVE' ? (
-                      <span className="hotel-status hotel-status-available">
-                        <Check className="w-3 h-3 shrink-0" />
-                        Active
-                      </span>
-                    ) : (
-                      <span className="hotel-status hotel-status-neutral">
-                        Expired
-                      </span>
-                    )}
-                  </td>
-                  <td className="text-right">
-                    {session.status === 'ACTIVE' && (
-                      <button
-                        onClick={() => handleRevoke(session.id)}
-                        className="text-xs font-semibold text-rose-700 hover:text-rose-900 hover:underline"
-                      >
-                        Revoke Access
-                      </button>
-                    )}
+              {sessions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-6 text-center text-slate-400 text-xs">
+                    No active technical support sessions.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                sessions.map((session) => (
+                  <tr key={session.id}>
+                    <td className="font-mono text-xs font-semibold text-slate-800">{session.id}</td>
+                    <td className="text-slate-600 text-xs">{session.initiatedBy}</td>
+                    <td className="text-slate-500 text-xs">{session.expiresAt}</td>
+                    <td>
+                      {session.status === 'ACTIVE' ? (
+                        <span className="hotel-status hotel-status-available">
+                          <Check className="w-3 h-3 shrink-0" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="hotel-status hotel-status-neutral">
+                          Expired
+                        </span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {session.status === 'ACTIVE' && (
+                        <button
+                          onClick={() => handleRevoke(session.id)}
+                          className="text-xs font-semibold text-rose-700 hover:text-rose-900 hover:underline"
+                        >
+                          Revoke Access
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

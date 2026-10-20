@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LogOut, Bell, Search, Check, AlertTriangle, 
   Sparkles, Coffee, UserCheck, Shield, Building2, 
@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CommandPalette } from '@/components/ui/CommandPalette';
+
+import { loadHotelRoomsFleet } from '@/lib/hotelRoomsFleet';
 
 interface NotificationItem {
   id: string;
@@ -20,11 +22,11 @@ interface NotificationItem {
 
 const initialNotifications: NotificationItem[] = [];
 
-const CHAIN_PROPERTIES = [
-  { id: 'prop-marina', name: 'Grand Horizon Resort - Marina Bay', type: 'Flagship 5★ Luxury', rooms: 140 },
-  { id: 'prop-city', name: 'Grand Horizon City Center Suites', type: 'Executive 4★ Business', rooms: 85 },
-  { id: 'prop-villas', name: 'Grand Horizon Boutique & Villas', type: 'Ultra Luxury 5★ Private', rooms: 32 },
-];
+const DEFAULT_PROPERTY = {
+  id: 'prop-adk-main',
+  name: 'Grand ADK Hotel',
+  type: 'Primary Property',
+};
 
 export function Header() {
   const router = useRouter();
@@ -33,8 +35,23 @@ export function Header() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   // Multi-Property State
-  const [selectedProperty, setSelectedProperty] = useState(CHAIN_PROPERTIES[0]);
+  const [selectedProperty, setSelectedProperty] = useState(DEFAULT_PROPERTY);
   const [showPropertyDropdown, setShowPropertyDropdown] = useState(false);
+  const [totalRoomsCount, setTotalRoomsCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      const fleet = loadHotelRoomsFleet();
+      setTotalRoomsCount(fleet.length);
+    };
+    updateCount();
+    window.addEventListener('hotel_rooms_changed', updateCount);
+    window.addEventListener('storage', updateCount);
+    return () => {
+      window.removeEventListener('hotel_rooms_changed', updateCount);
+      window.removeEventListener('storage', updateCount);
+    };
+  }, []);
 
   // Luxury Gold / Obsidian Theme Mode
   const [isLuxuryGold, setIsLuxuryGold] = useState(false);
@@ -77,7 +94,7 @@ export function Header() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const handleSelectProperty = (prop: typeof CHAIN_PROPERTIES[0]) => {
+  const handleSelectProperty = (prop: typeof DEFAULT_PROPERTY) => {
     setSelectedProperty(prop);
     setShowPropertyDropdown(false);
     localStorage.setItem('active_property_id', prop.id);
@@ -130,7 +147,7 @@ export function Header() {
                   <span className={`text-[10px] font-semibold ${isLuxuryGold ? 'text-amber-400' : 'text-slate-500'}`}>
                     {selectedProperty.type}
                   </span>
-                  <span className="text-[10px] text-slate-400">• {selectedProperty.rooms} Rooms</span>
+                  <span className="text-[10px] text-slate-400">• {totalRoomsCount} Rooms</span>
                 </div>
               </div>
             </button>
@@ -141,29 +158,20 @@ export function Header() {
                 isLuxuryGold ? 'bg-slate-900 border-amber-500/30 text-amber-100' : 'bg-white border-slate-200'
               }`}>
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Hotel Chain Portfolio
+                  Active Property
                 </div>
                 <div className="space-y-1">
-                  {CHAIN_PROPERTIES.map(prop => {
-                    const isCurrent = prop.id === selectedProperty.id;
-                    return (
-                      <button
-                        key={prop.id}
-                        onClick={() => handleSelectProperty(prop)}
-                        className={`w-full text-left p-2.5 rounded-xl text-xs transition flex items-center justify-between ${
-                          isCurrent 
-                            ? (isLuxuryGold ? 'bg-amber-500/20 text-amber-200 font-bold border border-amber-500/30' : 'bg-blue-50 text-blue-700 font-bold border border-blue-200')
-                            : (isLuxuryGold ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-50 text-slate-700')
-                        }`}
-                      >
-                        <div>
-                          <p className="leading-snug">{prop.name}</p>
-                          <p className="text-[10px] text-slate-400 font-normal">{prop.type} ({prop.rooms} Keys)</p>
-                        </div>
-                        {isCurrent && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-                      </button>
-                    );
-                  })}
+                  <div
+                    className={`w-full text-left p-2.5 rounded-xl text-xs transition flex items-center justify-between ${
+                      isLuxuryGold ? 'bg-amber-500/20 text-amber-200 font-bold border border-amber-500/30' : 'bg-blue-50 text-blue-700 font-bold border border-blue-200'
+                    }`}
+                  >
+                    <div>
+                      <p className="leading-snug">{DEFAULT_PROPERTY.name}</p>
+                      <p className="text-[10px] text-slate-400 font-normal">{DEFAULT_PROPERTY.type} ({totalRoomsCount} Rooms)</p>
+                    </div>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  </div>
                 </div>
               </div>
             )}

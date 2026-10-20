@@ -45,13 +45,13 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
     doc.setTextColor(15, 23, 42); // slate-900
-    doc.text('GRAND HORIZON HOTEL & SUITES', 14, 20);
+    doc.text('GRAND ADK HOTEL & SUITES', 14, 20);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
-    doc.text('742 Coastal Boulevard, Marina Bay, CA 94105', 14, 26);
-    doc.text('Tel: +1 (555) 019-2834 | reservations@grandhorizon.com | GST/VAT: 29AAACH7409R1ZX', 14, 30);
+    doc.text('Main Property Road, Luxury Hospitality District', 14, 26);
+    doc.text('Tel: +91 99999 00000 | reservations@adkhotel.com | GST/VAT: 29AAACH7409R1ZX', 14, 30);
 
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 34, 196, 34);
@@ -127,7 +127,7 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
-    doc.text('Thank you for choosing Grand Horizon Hotel & Suites. Computer generated invoice.', 14, 275);
+    doc.text('Thank you for choosing Grand ADK Hotel & Suites. Computer generated invoice.', 14, 275);
     doc.line(14, 260, 60, 260);
     doc.text('Authorized Front Office Cashier', 14, 265);
 
@@ -173,9 +173,9 @@ export function A4TaxInvoiceModal({ isOpen, onClose, invoice }: A4TaxInvoiceModa
           {/* Header */}
           <div className="flex justify-between items-start border-b border-slate-200 pb-6">
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">GRAND HORIZON HOTEL & SUITES</h1>
-              <p className="text-slate-500 text-[11px] mt-1">742 Coastal Boulevard, Marina Bay, CA 94105</p>
-              <p className="text-slate-500 text-[11px]">Tel: +1 (555) 019-2834 | reservations@grandhorizon.com</p>
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">GRAND ADK HOTEL & SUITES</h1>
+              <p className="text-slate-500 text-[11px] mt-1">Main Property Road, Luxury Hospitality District</p>
+              <p className="text-slate-500 text-[11px]">Tel: +91 99999 00000 | reservations@adkhotel.com</p>
               <p className="text-slate-500 text-[11px] font-mono mt-0.5">GST/VAT Tax ID: 29AAACH7409R1ZX</p>
             </div>
             <div className="text-right">

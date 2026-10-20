@@ -75,6 +75,8 @@ export default function StaffManagementPage() {
           setCurrentUserRole(parsed.role);
           if (parsed.role === 'SUPER_ADMIN') {
             setActiveTab('ADMIN');
+          } else {
+            setActiveTab('WAITER');
           }
         }
       }
@@ -159,7 +161,7 @@ export default function StaffManagementPage() {
       username: usernameClean,
       password: formData.password,
       role: formData.role,
-      property: formData.property.trim() || 'Grand Horizon Resort - Marina Bay',
+      property: formData.property.trim() || 'Grand ADK Hotel',
     });
 
     const roleLabel = 
@@ -184,7 +186,7 @@ export default function StaffManagementPage() {
       email: staff.email,
       username: staff.username,
       role: staff.role,
-      property: staff.property || 'Grand Horizon Resort - Marina Bay',
+      property: staff.property || 'Grand ADK Hotel',
       isActive: staff.isActive,
     });
     setShowEditModal(true);
@@ -347,22 +349,24 @@ export default function StaffManagementPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-slate-200 pb-2">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
           {/* Tab 1: Hotel Admins (Super Admin Control) */}
-          <button
-            onClick={() => setActiveTab('ADMIN')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 ${
-              activeTab === 'ADMIN'
-                ? 'bg-purple-950 text-white shadow-xs ring-2 ring-purple-600/30'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            <Crown className="w-4 h-4 text-amber-300" />
-            <span>Hotel Admins (Property Admins)</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'ADMIN' ? 'bg-purple-800 text-purple-100' : 'bg-purple-50 text-purple-700'
-            }`}>
-              {adminCount}
-            </span>
-          </button>
+          {currentUserRole === 'SUPER_ADMIN' && (
+            <button
+              onClick={() => setActiveTab('ADMIN')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 ${
+                activeTab === 'ADMIN'
+                  ? 'bg-purple-950 text-white shadow-xs ring-2 ring-purple-600/30'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <Crown className="w-4 h-4 text-amber-300" />
+              <span>Hotel Admins (Property Admins)</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'ADMIN' ? 'bg-purple-800 text-purple-100' : 'bg-purple-50 text-purple-700'
+              }`}>
+                {adminCount}
+              </span>
+            </button>
+          )}
 
           {/* Tab 2: Waiters */}
           <button
@@ -697,7 +701,7 @@ export default function StaffManagementPage() {
                 <input
                   type="text"
                   required={formData.role === 'ADMIN'}
-                  placeholder="e.g. Grand Horizon Resort - Marina Bay"
+                  placeholder="e.g. Grand ADK Hotel"
                   value={formData.property}
                   onChange={(e) => setFormData({ ...formData, property: e.target.value })}
                   className="hotel-input text-xs"
@@ -705,9 +709,8 @@ export default function StaffManagementPage() {
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   <span className="text-[10px] text-slate-400 font-medium mr-1">Quick Suggestions:</span>
                   {[
-                    'Grand Horizon Resort - Marina Bay',
-                    'Grand Horizon Boutique & Villas',
-                    'Grand Horizon City Center Suites'
+                    'Grand ADK Hotel - Main Property',
+                    'Grand ADK Hotel - Executive Wing'
                   ].map((prop) => (
                     <button
                       key={prop}
@@ -896,7 +899,7 @@ export default function StaffManagementPage() {
                 <label className="block font-semibold text-slate-700 mb-1">Assigned Property / Branch</label>
                 <input
                   type="text"
-                  placeholder="e.g. Grand Horizon Resort - Marina Bay"
+                  placeholder="e.g. Grand ADK Hotel"
                   value={editFormData.property}
                   onChange={(e) => setEditFormData({ ...editFormData, property: e.target.value })}
                   className="hotel-input text-xs"
