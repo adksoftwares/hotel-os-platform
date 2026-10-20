@@ -28,20 +28,27 @@ interface WaiterOrderItem extends MenuItem {
   hold?: boolean;
 }
 
-const MENU_CATALOG: MenuItem[] = [
-  { id: '1', name: 'Steak Frites (250g)', category: 'Mains', course: 'MAIN', price: 50.0, img: '🥩', dietary: 'Chef Special' },
-  { id: '2', name: 'Caesar Salad with Bacon', category: 'Starters', course: 'STARTER', price: 15.0, img: '🥗', dietary: 'GF Opt' },
-  { id: '3', name: 'Truffle Parmesan Fries', category: 'Sides', course: 'STARTER', price: 12.0, img: '🍟', dietary: 'Veg' },
-  { id: '4', name: 'Artisan Craft Cola', category: 'Beverages', course: 'BEVERAGE', price: 5.0, img: '🥤' },
-  { id: '5', name: 'Wagyu Burger Deluxe', category: 'Mains', course: 'MAIN', price: 25.0, img: '🍔', dietary: 'Popular' },
-  { id: '6', name: 'NY Baked Cheesecake', category: 'Desserts', course: 'DESSERT', price: 10.0, img: '🍰', dietary: 'Veg' },
-  { id: '7', name: 'Margherita Woodfire Pizza', category: 'Mains', course: 'MAIN', price: 18.0, img: '🍕', dietary: 'Veg' },
-  { id: '8', name: 'Garlic Tomato Bruschetta', category: 'Starters', course: 'STARTER', price: 9.0, img: '🥖', dietary: 'Vegan' },
-  { id: '9', name: 'Crispy Calamari Rings', category: 'Starters', course: 'STARTER', price: 16.0, img: '🦑' },
-  { id: '10', name: 'Grilled Atlantic Salmon', category: 'Mains', course: 'MAIN', price: 34.0, img: '🐟', dietary: 'GF' },
-  { id: '11', name: 'Espresso Martini', category: 'Beverages', course: 'BEVERAGE', price: 14.0, img: '🍸' },
-  { id: '12', name: 'Warm Lava Chocolate Cake', category: 'Desserts', course: 'DESSERT', price: 12.0, img: '🍫', dietary: 'Veg' },
-];
+const FAKE_FOOD_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'M-001', 'M-002', 'M-003']);
+const FAKE_FOOD_NAMES = new Set([
+  'steak frites (250g)',
+  'caesar salad with bacon',
+  'truffle parmesan fries',
+  'artisan craft cola',
+  'wagyu burger deluxe',
+  'ny baked cheesecake',
+  'margherita woodfire pizza',
+  'garlic tomato bruschetta',
+  'grilled atlantic salmon',
+  'crispy calamari rings',
+  'espresso martini',
+  'lava chocolate cake',
+  'warm lava chocolate cake',
+  'grilled salmon',
+  'caesar salad',
+  'truffle pasta',
+]);
+
+const MENU_CATALOG: MenuItem[] = [];
 
 const TABLES_LIST = [
   { id: 'T1', name: 'Table 1', zone: 'AC Dining', maxCovers: 2 },
@@ -81,7 +88,11 @@ export default function WaiterHandheldPOS() {
       if (allSaved) {
         const parsed = JSON.parse(allSaved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setCatalog(parsed);
+          const nonFake = parsed.filter(item => 
+            !FAKE_FOOD_IDS.has(String(item.id)) && 
+            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
+          );
+          setCatalog(nonFake);
           return;
         }
       }
@@ -89,13 +100,17 @@ export default function WaiterHandheldPOS() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setCatalog([...MENU_CATALOG, ...parsed]);
+          const nonFake = parsed.filter(item => 
+            !FAKE_FOOD_IDS.has(String(item.id)) && 
+            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
+          );
+          setCatalog(nonFake);
           return;
         }
       }
-      setCatalog(MENU_CATALOG);
+      setCatalog([]);
     } catch (_) {
-      setCatalog(MENU_CATALOG);
+      setCatalog([]);
     }
   };
 
@@ -395,12 +410,19 @@ export default function WaiterHandheldPOS() {
 
           {/* Menu Cards (Touch friendly big buttons) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {filteredCatalog.map(item => (
-              <button
-                key={item.id}
-                onClick={() => addItemToTicket(item)}
-                className="bg-slate-900 hover:bg-slate-800/90 active:scale-95 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-3 text-left transition flex flex-col justify-between group shadow-sm"
-              >
+            {filteredCatalog.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-slate-500 space-y-2">
+                <Utensils className="w-8 h-8 text-slate-600 mx-auto" />
+                <p className="text-xs font-semibold text-slate-300">No Food Items in Menu</p>
+                <p className="text-[11px] text-slate-500">Add dishes in Menu Management to take orders.</p>
+              </div>
+            ) : (
+              filteredCatalog.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => addItemToTicket(item)}
+                  className="bg-slate-900 hover:bg-slate-800/90 active:scale-95 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-3 text-left transition flex flex-col justify-between group shadow-sm"
+                >
                 <div>
                   <div className="flex items-start justify-between">
                     <span className="text-2xl mb-1">{item.img}</span>
@@ -429,7 +451,7 @@ export default function WaiterHandheldPOS() {
                   </span>
                 </div>
               </button>
-            ))}
+            )))}
           </div>
         </div>
 

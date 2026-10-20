@@ -69,6 +69,10 @@ export default function AddFoodPage() {
         name: newItem.name,
         price: newItem.price,
         category: newItem.category,
+        course: (newItem.category.toLowerCase().includes('starter') || newItem.category.toLowerCase().includes('appetizer')) ? 'STARTER' :
+                (newItem.category.toLowerCase().includes('dessert')) ? 'DESSERT' :
+                (newItem.category.toLowerCase().includes('beverage') || newItem.category.toLowerCase().includes('drink')) ? 'BEVERAGE' : 'MAIN',
+        img: '🍽️',
         status: newItem.available ? 'AVAILABLE' : '86',
         rating: 4.8,
         description: '',

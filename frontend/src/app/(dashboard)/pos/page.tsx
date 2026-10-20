@@ -44,20 +44,27 @@ export interface HeldBill {
   server?: string;
 }
 
-const defaultMenuItems: MenuItemEntity[] = [
-  { id: '1', name: 'Steak Frites (250g)', category: 'Mains', course: 'MAIN', price: 50.00, img: '🥩', dietary: 'Chef Special' },
-  { id: '2', name: 'Caesar Salad with Bacon', category: 'Starters', course: 'STARTER', price: 15.00, img: '🥗', dietary: 'GF' },
-  { id: '3', name: 'Truffle Parmesan Fries', category: 'Sides', course: 'STARTER', price: 12.00, img: '🍟', dietary: 'Veg' },
-  { id: '4', name: 'Artisan Craft Cola', category: 'Beverages', course: 'BEVERAGE', price: 5.00, img: '🥤' },
-  { id: '5', name: 'Wagyu Burger Deluxe', category: 'Mains', course: 'MAIN', price: 25.00, img: '🍔', dietary: 'Popular' },
-  { id: '6', name: 'NY Baked Cheesecake', category: 'Desserts', course: 'DESSERT', price: 10.00, img: '🍰', dietary: 'Veg' },
-  { id: '7', name: 'Margherita Woodfire Pizza', category: 'Mains', course: 'MAIN', price: 18.00, img: '🍕', dietary: 'Veg' },
-  { id: '8', name: 'Garlic Tomato Bruschetta', category: 'Starters', course: 'STARTER', price: 9.00, img: '🥖', dietary: 'Vegan' },
-  { id: '9', name: 'Grilled Atlantic Salmon', category: 'Mains', course: 'MAIN', price: 34.00, img: '🐟', dietary: 'GF' },
-  { id: '10', name: 'Crispy Calamari Rings', category: 'Starters', course: 'STARTER', price: 16.00, img: '🦑', dietary: 'Popular' },
-  { id: '11', name: 'Espresso Martini', category: 'Beverages', course: 'BEVERAGE', price: 14.00, img: '🍸' },
-  { id: '12', name: 'Lava Chocolate Cake', category: 'Desserts', course: 'DESSERT', price: 12.00, img: '🍫', dietary: 'Veg' },
-];
+const FAKE_FOOD_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'M-001', 'M-002', 'M-003']);
+const FAKE_FOOD_NAMES = new Set([
+  'steak frites (250g)',
+  'caesar salad with bacon',
+  'truffle parmesan fries',
+  'artisan craft cola',
+  'wagyu burger deluxe',
+  'ny baked cheesecake',
+  'margherita woodfire pizza',
+  'garlic tomato bruschetta',
+  'grilled atlantic salmon',
+  'crispy calamari rings',
+  'espresso martini',
+  'lava chocolate cake',
+  'warm lava chocolate cake',
+  'grilled salmon',
+  'caesar salad',
+  'truffle pasta',
+]);
+
+const defaultMenuItems: MenuItemEntity[] = [];
 
 interface TableEntity {
   id: string;
@@ -140,10 +147,15 @@ export default function RestaurantPOS() {
       const allSaved = localStorage.getItem('pos_all_menu_items');
       if (allSaved) {
         const parsed = JSON.parse(allSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Auto-clean any items with raw URL strings so they show clean emojis instead of URL text
-          let hasDirty = false;
-          const cleaned = parsed.map((item: any) => {
+        if (Array.isArray(parsed)) {
+          // Strip out fake sample dishes
+          const nonFake = parsed.filter((item: any) => 
+            !FAKE_FOOD_IDS.has(String(item.id)) && 
+            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
+          );
+          
+          let hasDirty = nonFake.length !== parsed.length;
+          const cleaned = nonFake.map((item: any) => {
             if (!item.img || item.img.startsWith('http') || item.img.length > 10) {
               hasDirty = true;
               return { ...item, img: getEmojiForDish(item.name, item.category) };
@@ -161,11 +173,18 @@ export default function RestaurantPOS() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMenuItems([...defaultMenuItems, ...parsed]);
+          const nonFake = parsed.filter((item: any) => 
+            !FAKE_FOOD_IDS.has(String(item.id)) && 
+            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
+          );
+          setMenuItems(nonFake);
           return;
         }
       }
-    } catch (_) {}
+      setMenuItems([]);
+    } catch (_) {
+      setMenuItems([]);
+    }
   };
 
   useEffect(() => {
@@ -245,8 +264,8 @@ export default function RestaurantPOS() {
   };
 
   const handleRestoreDefaultMenu = () => {
-    saveMenuItems(defaultMenuItems);
-    toast("Restored default restaurant menu dishes!", 'success');
+    saveMenuItems([]);
+    toast("Restaurant menu catalog cleared!", 'info');
   };
 
   // 1. Add New Food Item to Catalog Modal State
@@ -1245,12 +1264,29 @@ export default function RestaurantPOS() {
 
             {/* Menu Cards Grid - Fixed Height Cards with auto-rows-max and content-start */}
             <div className="flex-1 p-4 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5 auto-rows-max content-start">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleAddItem(item)}
-                  className="p-3 bg-white hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-2xl cursor-pointer transition-all flex flex-col justify-between group select-none shadow-2xs hover:shadow-xs active:scale-98 min-h-[125px]"
-                >
+              {filteredItems.length === 0 ? (
+                <div className="col-span-full py-16 text-center text-slate-400 space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center">
+                    <Utensils className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700">No Food Items in Menu</p>
+                  <p className="text-xs text-slate-400">All demo food items have been removed. Click &quot;+ Add Food to Menu&quot; to add dishes.</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddFoodModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add New Food</span>
+                  </button>
+                </div>
+              ) : (
+                filteredItems.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleAddItem(item)}
+                    className="p-3 bg-white hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-2xl cursor-pointer transition-all flex flex-col justify-between group select-none shadow-2xs hover:shadow-xs active:scale-98 min-h-[125px]"
+                  >
                   <div>
                     <div className="flex items-start justify-between">
                       {/* Emoji Icon Container - Centered and protected against font clipping */}
@@ -1287,7 +1323,7 @@ export default function RestaurantPOS() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
 

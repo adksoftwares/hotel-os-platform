@@ -20,41 +20,27 @@ interface MenuItem {
   image?: string;
 }
 
-const SAMPLE_MENU: MenuItem[] = [
-  {
-    id: "M-001",
-    category: "Main Course",
-    name: "Grilled Salmon",
-    description: "Fresh Atlantic salmon with asparagus and hollandaise",
-    basePrice: 28.00,
-    variants: [
-      { id: "v1", name: "Standard", price: 28.00 },
-      { id: "v2", name: "Large", price: 34.00 }
-    ],
-    available: true
-  },
-  {
-    id: "M-002",
-    category: "Appetizers",
-    name: "Caesar Salad",
-    description: "Crisp romaine, parmesan, croutons",
-    basePrice: 12.00,
-    variants: [
-      { id: "v3", name: "No Chicken", price: 12.00 },
-      { id: "v4", name: "With Chicken", price: 16.00 }
-    ],
-    available: true
-  },
-  {
-    id: "M-003",
-    category: "Main Course",
-    name: "Truffle Pasta",
-    description: "Handmade fettuccine, black truffle, cream",
-    basePrice: 24.00,
-    variants: [],
-    available: false
-  },
-];
+const FAKE_FOOD_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'M-001', 'M-002', 'M-003']);
+const FAKE_FOOD_NAMES = new Set([
+  'steak frites (250g)',
+  'caesar salad with bacon',
+  'truffle parmesan fries',
+  'artisan craft cola',
+  'wagyu burger deluxe',
+  'ny baked cheesecake',
+  'margherita woodfire pizza',
+  'garlic tomato bruschetta',
+  'grilled atlantic salmon',
+  'crispy calamari rings',
+  'espresso martini',
+  'lava chocolate cake',
+  'warm lava chocolate cake',
+  'grilled salmon',
+  'caesar salad',
+  'truffle pasta',
+]);
+
+const SAMPLE_MENU: MenuItem[] = [];
 
 export default function MenuManagement() {
   const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -82,7 +68,15 @@ export default function MenuManagement() {
       if (saved !== null) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          setMenu(parsed);
+          const nonFake = parsed.filter(item => 
+            !FAKE_FOOD_IDS.has(String(item.id)) && 
+            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
+          );
+          if (nonFake.length !== parsed.length) {
+            localStorage.setItem('hotel_menu_items', JSON.stringify(nonFake));
+            localStorage.setItem('restaurant_menu_items', JSON.stringify(nonFake));
+          }
+          setMenu(nonFake);
           return;
         }
       }
