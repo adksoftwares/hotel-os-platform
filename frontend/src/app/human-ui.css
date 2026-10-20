@@ -315,44 +315,44 @@ button:disabled {
 }
 
 .hotel-status-available {
-  color: #166534;
+  color: #15803d;
   background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  border: 1px solid #dcfce7;
 }
 
 .hotel-status-occupied {
   color: #1e40af;
   background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #dbeafe;
 }
 
 .hotel-status-dirty {
-  color: #991b1b;
+  color: #b91c1c;
   background: #fef2f2;
-  border: 1px solid #fecaca;
+  border: 1px solid #fee2e2;
 }
 
 .hotel-status-cleaning {
-  color: #854d0e;
-  background: #fefce8;
-  border: 1px solid #fef08a;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
 }
 
 .hotel-status-inspected {
-  color: #065f46;
+  color: #047857;
   background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  border: 1px solid #d1fae5;
 }
 
 .hotel-status-maintenance {
-  color: #9a3412;
+  color: #c2410c;
   background: #fff7ed;
-  border: 1px solid #fed7aa;
+  border: 1px solid #ffedd5;
 }
 
 .hotel-status-neutral {
-  color: #334155;
-  background: #f1f5f9;
+  color: #475569;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
 }
 

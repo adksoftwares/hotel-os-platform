@@ -228,15 +228,15 @@ export default function FrontDesk() {
   return (
     <div className="space-y-6">
       {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Front Desk Operations</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Front Desk Operations</h1>
+            <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
               Live Arrivals Hub
             </span>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Real-time guest check-in, walk-in reservations, keycard issuance, and night audit rollover.
           </p>
         </div>
@@ -248,59 +248,59 @@ export default function FrontDesk() {
               setAuditComplete(false);
               setModalState({ type: 'nightaudit' });
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium transition-colors shadow-2xs"
           >
-            <Moon className="w-3.5 h-3.5" />
+            <Moon className="w-3.5 h-3.5 text-slate-500" />
             <span>Night Audit</span>
           </button>
           <button
             onClick={openWalkIn}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition-colors shadow-xs"
           >
-            <UserPlus className="w-4 h-4" /> 
+            <UserPlus className="w-3.5 h-3.5" /> 
             <span>+ New Walk-In</span>
           </button>
         </div>
       </div>
 
-      {/* Operational KPI Metric Pills */}
+      {/* Operational KPI Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Expected Arrivals</p>
-            <p className="text-xl font-bold text-slate-800 mt-1">{expectedArrivals} Guests</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Expected Arrivals</p>
+            <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{expectedArrivals} <span className="text-xs font-normal text-slate-500">Guests</span></p>
           </div>
-          <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600">
+          <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600">
             <LogIn className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">In-House Guests</p>
-            <p className="text-xl font-bold text-emerald-600 mt-1">{inHouseGuests} Guests</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">In-House Guests</p>
+            <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{inHouseGuests} <span className="text-xs font-normal text-slate-500">Guests</span></p>
           </div>
-          <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600">
+          <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600">
             <Bed className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Departures Today</p>
-            <p className="text-xl font-bold text-amber-600 mt-1">{departuresToday} Check-Outs</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Departures Today</p>
+            <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{departuresToday} <span className="text-xs font-normal text-slate-500">Check-Outs</span></p>
           </div>
-          <div className="p-2.5 rounded-lg bg-amber-50 text-amber-600">
+          <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600">
             <LogOut className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">Occupancy Rate</p>
-            <p className="text-xl font-bold text-indigo-600 mt-1">{liveOccupancyRate}%</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Occupancy Rate</p>
+            <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{liveOccupancyRate}%</p>
           </div>
-          <div className="p-2.5 rounded-lg bg-indigo-50 text-indigo-600">
+          <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600">
             <Clock className="w-5 h-5" />
           </div>
         </div>
@@ -351,10 +351,10 @@ export default function FrontDesk() {
                       </td>
                       <td className="px-4 py-3.5 font-mono text-slate-600">{arr.eta}</td>
                       <td className="px-4 py-3.5">
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                        <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-md uppercase tracking-wider border ${
                           arr.status === 'Checked-In'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
                           {arr.status}
                         </span>
@@ -363,7 +363,7 @@ export default function FrontDesk() {
                         {arr.status === 'Pending' ? (
                           <button 
                             onClick={() => openCheckIn(arr)} 
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs transition-colors inline-flex items-center gap-1.5"
+                            className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-md font-medium text-xs transition-colors inline-flex items-center gap-1.5 shadow-2xs"
                           >
                             <CheckCircle className="w-3.5 h-3.5" /> Check-In
                           </button>

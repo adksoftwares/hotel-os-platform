@@ -41,7 +41,7 @@ export function StatusBadge({ status, size = "md", className = "" }: StatusBadge
       break;
     case "RESERVED":
       label = "Reserved";
-      colorClass = "bg-purple-50 text-purple-700 border border-purple-200";
+      colorClass = "bg-slate-100 text-slate-700 border border-slate-200";
       IconComponent = Clock;
       break;
 
