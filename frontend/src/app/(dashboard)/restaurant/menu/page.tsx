@@ -2,6 +2,14 @@
 import { useEffect } from 'react';
 import React, { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, Check, X, Filter, Utensils, AlertTriangle } from 'lucide-react';
+import { 
+  UnifiedFoodItem, 
+  loadMenuCatalog, 
+  saveMenuCatalog, 
+  getEmojiForDish,
+  FAKE_FOOD_IDS,
+  FAKE_FOOD_NAMES
+} from '@/lib/hotelMenuCatalog';
 
 interface FoodVariant {
   id: string;
@@ -18,27 +26,8 @@ interface MenuItem {
   variants: FoodVariant[];
   available: boolean;
   image?: string;
+  img?: string;
 }
-
-const FAKE_FOOD_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'M-001', 'M-002', 'M-003']);
-const FAKE_FOOD_NAMES = new Set([
-  'steak frites (250g)',
-  'caesar salad with bacon',
-  'truffle parmesan fries',
-  'artisan craft cola',
-  'wagyu burger deluxe',
-  'ny baked cheesecake',
-  'margherita woodfire pizza',
-  'garlic tomato bruschetta',
-  'grilled atlantic salmon',
-  'crispy calamari rings',
-  'espresso martini',
-  'lava chocolate cake',
-  'warm lava chocolate cake',
-  'grilled salmon',
-  'caesar salad',
-  'truffle pasta',
-]);
 
 const SAMPLE_MENU: MenuItem[] = [];
 
@@ -53,7 +42,7 @@ export default function MenuManagement() {
   // Form State
   const [formData, setFormData] = useState<Partial<MenuItem>>({
     name: '',
-    category: 'Main Course',
+    category: 'Mains',
     description: '',
     basePrice: 0,
     available: true,
@@ -64,23 +53,8 @@ export default function MenuManagement() {
 
   const loadMenu = () => {
     try {
-      const saved = localStorage.getItem('hotel_menu_items') || localStorage.getItem('restaurant_menu_items');
-      if (saved !== null) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const nonFake = parsed.filter(item => 
-            !FAKE_FOOD_IDS.has(String(item.id)) && 
-            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
-          );
-          if (nonFake.length !== parsed.length) {
-            localStorage.setItem('hotel_menu_items', JSON.stringify(nonFake));
-            localStorage.setItem('restaurant_menu_items', JSON.stringify(nonFake));
-          }
-          setMenu(nonFake);
-          return;
-        }
-      }
-      setMenu([]);
+      const items = loadMenuCatalog();
+      setMenu(items as any);
     } catch (e) {
       setMenu([]);
     }
@@ -99,59 +73,10 @@ export default function MenuManagement() {
     };
   }, []);
 
-  const getEmojiForDish = (name: string, category: string = ''): string => {
-    const n = (name || '').toLowerCase();
-    const c = (category || '').toLowerCase();
-    if (n.includes('rice') || n.includes('biryani') || n.includes('fried rice') || n.includes('pulao')) return '🍚';
-    if (n.includes('burger')) return '🍔';
-    if (n.includes('pizza')) return '🍕';
-    if (n.includes('salad')) return '🥗';
-    if (n.includes('soup')) return '🍲';
-    if (n.includes('pasta') || n.includes('noodle') || n.includes('spaghetti')) return '🍝';
-    if (n.includes('fish') || n.includes('salmon') || n.includes('seafood') || n.includes('crab') || n.includes('prawn')) return '🐟';
-    if (n.includes('chicken') || n.includes('meat') || n.includes('steak') || n.includes('curry') || n.includes('mutton') || n.includes('beef')) return '🍗';
-    if (n.includes('fries') || n.includes('potato') || n.includes('chip')) return '🍟';
-    if (n.includes('cake') || n.includes('dessert') || n.includes('sweet') || n.includes('ice cream') || n.includes('chocolate')) return '🍰';
-    if (n.includes('tea') || n.includes('coffee') || n.includes('espresso') || n.includes('cappuccino')) return '☕';
-    if (n.includes('juice') || n.includes('drink') || n.includes('beverage') || n.includes('coke') || n.includes('mojito') || n.includes('water') || n.includes('soda')) return '🥤';
-    if (n.includes('bread') || n.includes('roti') || n.includes('naan') || n.includes('toast')) return '🍞';
-    if (n.includes('taco') || n.includes('wrap') || n.includes('burrito')) return '🌮';
-    if (n.includes('sushi')) return '🍣';
-    if (c.includes('beverage')) return '🥤';
-    if (c.includes('dessert')) return '🍰';
-    if (c.includes('starter') || c.includes('appetizer')) return '🥗';
-    return '🍽️';
-  };
-
   const saveMenu = (newMenu: MenuItem[]) => {
     setMenu(newMenu);
     try {
-      localStorage.setItem('hotel_menu_items', JSON.stringify(newMenu));
-      localStorage.setItem('restaurant_menu_items', JSON.stringify(newMenu));
-
-      // Also sync to POS catalog so POS immediately reflects edits/adds with clean emojis
-      const existingPos = JSON.parse(localStorage.getItem('pos_all_menu_items') || '[]');
-      const categoryMap: Record<string, string> = {
-        'Appetizers': 'Starters',
-        'Main Course': 'Mains',
-        'Desserts': 'Desserts',
-        'Beverages': 'Beverages'
-      };
-      const syncedPos = newMenu.map(m => {
-        const found = Array.isArray(existingPos) ? existingPos.find((p: any) => p.name === m.name || p.id === m.id) : null;
-        const assignedEmoji = (found?.img && !found.img.startsWith('http')) ? found.img : getEmojiForDish(m.name, m.category);
-        return {
-          id: m.id,
-          name: m.name,
-          category: categoryMap[m.category] || m.category || 'Mains',
-          price: m.basePrice || (m.variants && m.variants[0]?.price) || 0,
-          course: m.category === 'Appetizers' ? 'Starters' : m.category === 'Desserts' ? 'Desserts' : m.category === 'Beverages' ? 'Beverages' : 'Main Course',
-          img: assignedEmoji,
-          station: m.category === 'Beverages' ? 'Bar' : 'Kitchen'
-        };
-      });
-      localStorage.setItem('pos_all_menu_items', JSON.stringify(syncedPos));
-      window.dispatchEvent(new Event('hotel_menu_changed'));
+      saveMenuCatalog(newMenu as any);
     } catch (e) {}
   };
 
@@ -291,17 +216,17 @@ export default function MenuManagement() {
           <button 
             type="button"
             onClick={handleOpenAddModal}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors text-sm"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-bold transition-colors text-xs shadow-sm"
           >
-            <Plus size={18} />
-            Add Food Item
+            <Plus size={16} />
+            <span>+ Add Food Item</span>
           </button>
         </div>
       </div>
 
       {menu.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center max-w-xl mx-auto my-8 space-y-4 shadow-xs">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center mx-auto border border-slate-200">
             <Utensils className="w-8 h-8" />
           </div>
           <div>
@@ -314,7 +239,7 @@ export default function MenuManagement() {
             <button
               type="button"
               onClick={handleOpenAddModal}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-xs"
+              className="bg-slate-900 hover:bg-slate-800 text-white text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 font-bold transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Add Your First Dish</span>
@@ -322,7 +247,7 @@ export default function MenuManagement() {
             <button
               type="button"
               onClick={handleLoadSampleMenu}
-              className="px-3.5 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-semibold transition-colors"
+              className="px-3.5 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold transition-colors"
             >
               <span>Load Sample Dishes</span>
             </button>
@@ -336,24 +261,24 @@ export default function MenuManagement() {
               <input 
                 type="text" 
                 placeholder="Search menu items or categories..." 
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 text-xs font-medium"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm">
-              <Filter size={18} />
+            <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-xs">
+              <Filter size={16} />
               Filter Categories
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="p-4 font-semibold text-slate-700">Item</th>
                   <th className="p-4 font-semibold text-slate-700">Category</th>
-                  <th className="p-4 font-semibold text-slate-700">Base Price</th>
+                  <th className="p-4 font-semibold text-slate-700">Price</th>
                   <th className="p-4 font-semibold text-slate-700">Variants</th>
                   <th className="p-4 font-semibold text-slate-700">Status</th>
                   <th className="p-4 font-semibold text-slate-700 text-right">Actions</th>
@@ -363,17 +288,22 @@ export default function MenuManagement() {
                 {filteredMenu.map(item => (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
-                      <div className="font-medium text-slate-900">{item.name}</div>
+                      <div className="font-bold text-slate-900 flex items-center gap-2">
+                        <span className="text-base">{item.img || getEmojiForDish(item.name, item.category)}</span>
+                        <span>{item.name}</span>
+                      </div>
                       {item.description && (
-                        <div className="text-sm text-slate-500 truncate max-w-xs">{item.description}</div>
+                        <div className="text-xs text-slate-500 truncate max-w-xs mt-0.5">{item.description}</div>
                       )}
                     </td>
                     <td className="p-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-800">
                         {item.category}
                       </span>
                     </td>
-                    <td className="p-4 font-medium text-slate-900">Rs. {item.basePrice.toFixed(2)}</td>
+                    <td className="p-4 font-bold text-slate-900">
+                      Rs. {(Number(item.basePrice || (item as any).price || 0)).toFixed(2)}
+                    </td>
                     <td className="p-4">
                       {item.variants && item.variants.length > 0 ? (
                         <div className="flex flex-col gap-1">

@@ -8,6 +8,7 @@ import {
   Smartphone, ChevronRight, ShieldCheck, RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { loadMenuCatalog } from '@/lib/hotelMenuCatalog';
 
 export type CourseType = 'STARTER' | 'MAIN' | 'DESSERT' | 'BEVERAGE';
 
@@ -27,26 +28,6 @@ interface WaiterOrderItem extends MenuItem {
   notes: string;
   hold?: boolean;
 }
-
-const FAKE_FOOD_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'M-001', 'M-002', 'M-003']);
-const FAKE_FOOD_NAMES = new Set([
-  'steak frites (250g)',
-  'caesar salad with bacon',
-  'truffle parmesan fries',
-  'artisan craft cola',
-  'wagyu burger deluxe',
-  'ny baked cheesecake',
-  'margherita woodfire pizza',
-  'garlic tomato bruschetta',
-  'grilled atlantic salmon',
-  'crispy calamari rings',
-  'espresso martini',
-  'lava chocolate cake',
-  'warm lava chocolate cake',
-  'grilled salmon',
-  'caesar salad',
-  'truffle pasta',
-]);
 
 const MENU_CATALOG: MenuItem[] = [];
 
@@ -84,31 +65,8 @@ export default function WaiterHandheldPOS() {
 
   const loadWaiterCatalog = () => {
     try {
-      const allSaved = localStorage.getItem('pos_all_menu_items');
-      if (allSaved) {
-        const parsed = JSON.parse(allSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const nonFake = parsed.filter(item => 
-            !FAKE_FOOD_IDS.has(String(item.id)) && 
-            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
-          );
-          setCatalog(nonFake);
-          return;
-        }
-      }
-      const saved = localStorage.getItem('pos_custom_menu_items');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const nonFake = parsed.filter(item => 
-            !FAKE_FOOD_IDS.has(String(item.id)) && 
-            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
-          );
-          setCatalog(nonFake);
-          return;
-        }
-      }
-      setCatalog([]);
+      const items = loadMenuCatalog();
+      setCatalog(items as any);
     } catch (_) {
       setCatalog([]);
     }

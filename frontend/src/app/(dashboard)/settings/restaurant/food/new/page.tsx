@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, ArrowLeft, Save, CheckCircle2, ArrowRight, Utensils, Sparkles, X, IndianRupee, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { addMenuItem } from '@/lib/hotelMenuCatalog';
 
 export default function AddFoodPage() {
   const router = useRouter();
@@ -41,46 +42,17 @@ export default function AddFoodPage() {
     if (!itemName) return;
 
     try {
-      const existingMenu = JSON.parse(localStorage.getItem('hotel_menu_items') || localStorage.getItem('restaurant_menu_items') || '[]');
-      const newItem = {
-        id: `M-${Date.now().toString().slice(-4)}`,
+      addMenuItem({
         name: itemName,
         code: formData.code || `F-${Math.floor(100 + Math.random() * 900)}`,
-        category: formData.category || 'Main Course',
-        description: '',
-        basePrice: parseFloat(formData.price) || 0,
+        category: formData.category || 'Mains',
         price: parseFloat(formData.price) || 0,
         cost: parseFloat(formData.cost) || 0,
         tax: parseFloat(formData.tax) || 0,
         available: formData.isAvailable,
-        isAvailable: formData.isAvailable,
         variants: variants.map(v => ({ id: String(v.id), name: v.name, price: (parseFloat(formData.price) || 0) + (parseFloat(v.priceAdjustment) || 0) })),
         modifiers,
-      };
-      const filtered = Array.isArray(existingMenu) ? existingMenu.filter((m: any) => m.name !== itemName) : [];
-      const updated = [...filtered, newItem];
-      localStorage.setItem('hotel_menu_items', JSON.stringify(updated));
-      localStorage.setItem('restaurant_menu_items', JSON.stringify(updated));
-
-      // Also sync to POS and Waiter POS catalog
-      const existingPos = JSON.parse(localStorage.getItem('pos_all_menu_items') || '[]');
-      const newPosItem = {
-        id: newItem.id,
-        name: newItem.name,
-        price: newItem.price,
-        category: newItem.category,
-        course: (newItem.category.toLowerCase().includes('starter') || newItem.category.toLowerCase().includes('appetizer')) ? 'STARTER' :
-                (newItem.category.toLowerCase().includes('dessert')) ? 'DESSERT' :
-                (newItem.category.toLowerCase().includes('beverage') || newItem.category.toLowerCase().includes('drink')) ? 'BEVERAGE' : 'MAIN',
-        img: '🍽️',
-        status: newItem.available ? 'AVAILABLE' : '86',
-        rating: 4.8,
-        description: '',
-      };
-      const filteredPos = Array.isArray(existingPos) ? existingPos.filter((p: any) => p.name !== itemName) : [];
-      localStorage.setItem('pos_all_menu_items', JSON.stringify([...filteredPos, newPosItem]));
-
-      window.dispatchEvent(new Event('hotel_menu_changed'));
+      });
     } catch (_) {}
 
     setShowSuccessModal(true);

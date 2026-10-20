@@ -6,6 +6,14 @@ import { Modal } from '@/components/ui/Modal';
 import { ReceiptModal } from '@/components/ui/ReceiptModal';
 import { loadHotelRoomsFleet, RoomItem } from '@/lib/hotelRoomsFleet';
 import { 
+  UnifiedFoodItem, 
+  loadMenuCatalog, 
+  saveMenuCatalog, 
+  getEmojiForDish,
+  FAKE_FOOD_IDS,
+  FAKE_FOOD_NAMES
+} from '@/lib/hotelMenuCatalog';
+import { 
   Settings, Utensils, Bed, Search, Tag, Percent, ArrowRight, 
   Minus, Plus, Edit2, Trash2, LayoutGrid, Coffee, Split, 
   CheckCircle, Clock, Users, ArrowUpRight, DollarSign, Smartphone,
@@ -43,26 +51,6 @@ export interface HeldBill {
   heldAt: string;
   server?: string;
 }
-
-const FAKE_FOOD_IDS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'M-001', 'M-002', 'M-003']);
-const FAKE_FOOD_NAMES = new Set([
-  'steak frites (250g)',
-  'caesar salad with bacon',
-  'truffle parmesan fries',
-  'artisan craft cola',
-  'wagyu burger deluxe',
-  'ny baked cheesecake',
-  'margherita woodfire pizza',
-  'garlic tomato bruschetta',
-  'grilled atlantic salmon',
-  'crispy calamari rings',
-  'espresso martini',
-  'lava chocolate cake',
-  'warm lava chocolate cake',
-  'grilled salmon',
-  'caesar salad',
-  'truffle pasta',
-]);
 
 const defaultMenuItems: MenuItemEntity[] = [];
 
@@ -144,44 +132,8 @@ export default function RestaurantPOS() {
 
   const loadAllMenuItems = () => {
     try {
-      const allSaved = localStorage.getItem('pos_all_menu_items');
-      if (allSaved) {
-        const parsed = JSON.parse(allSaved);
-        if (Array.isArray(parsed)) {
-          // Strip out fake sample dishes
-          const nonFake = parsed.filter((item: any) => 
-            !FAKE_FOOD_IDS.has(String(item.id)) && 
-            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
-          );
-          
-          let hasDirty = nonFake.length !== parsed.length;
-          const cleaned = nonFake.map((item: any) => {
-            if (!item.img || item.img.startsWith('http') || item.img.length > 10) {
-              hasDirty = true;
-              return { ...item, img: getEmojiForDish(item.name, item.category) };
-            }
-            return item;
-          });
-          if (hasDirty) {
-            localStorage.setItem('pos_all_menu_items', JSON.stringify(cleaned));
-          }
-          setMenuItems(cleaned);
-          return;
-        }
-      }
-      const saved = localStorage.getItem('pos_custom_menu_items');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const nonFake = parsed.filter((item: any) => 
-            !FAKE_FOOD_IDS.has(String(item.id)) && 
-            !FAKE_FOOD_NAMES.has((item.name || '').toLowerCase().trim())
-          );
-          setMenuItems(nonFake);
-          return;
-        }
-      }
-      setMenuItems([]);
+      const catalog = loadMenuCatalog();
+      setMenuItems(catalog as any);
     } catch (_) {
       setMenuItems([]);
     }
@@ -192,19 +144,18 @@ export default function RestaurantPOS() {
     const handleSync = () => loadAllMenuItems();
     window.addEventListener('storage', handleSync);
     window.addEventListener('hotel_menu_changed', handleSync);
+    window.addEventListener('focus', handleSync);
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('hotel_menu_changed', handleSync);
+      window.removeEventListener('focus', handleSync);
     };
   }, []);
 
   const saveMenuItems = (updated: MenuItemEntity[]) => {
     setMenuItems(updated);
     try {
-      localStorage.setItem('pos_all_menu_items', JSON.stringify(updated));
-      const customOnly = updated.filter(i => !defaultMenuItems.some(d => d.id === i.id));
-      localStorage.setItem('pos_custom_menu_items', JSON.stringify(customOnly));
-      window.dispatchEvent(new Event('hotel_menu_changed'));
+      saveMenuCatalog(updated as any);
     } catch (_) {}
   };
 
