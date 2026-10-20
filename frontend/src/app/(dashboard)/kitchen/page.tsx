@@ -102,7 +102,8 @@ export default function KitchenDisplaySystem() {
     window.addEventListener('focus', () => syncLocalKots(false));
 
     // Socket listener
-    const socket: Socket = io('http://localhost:3001', {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const socket: Socket = io(apiBase, {
       query: { propertyId: 'default-property-id' }
     });
 

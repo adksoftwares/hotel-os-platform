@@ -217,8 +217,9 @@ const computeLiveOperationalState = (): LiveOperationalMetrics => {
 
 export default function Dashboard() {
   const propertyId = 'default-property-id';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   const { data, error, isLoading } = useSWR(
-    `http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`,
+    `${apiBase}/dashboard/metrics?propertyId=${propertyId}`,
     fetcher,
     { refreshInterval: 5000, revalidateOnFocus: true }
   );
@@ -256,21 +257,21 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const socket = io('http://localhost:3001', { query: { propertyId }, reconnectionAttempts: 3, timeout: 2000 });
+    const socket = io(apiBase, { query: { propertyId }, reconnectionAttempts: 3, timeout: 2000 });
     
     socket.on('connect', () => setSocketConnected(true));
     socket.on('disconnect', () => setSocketConnected(false));
     socket.on('connect_error', () => setSocketConnected(false));
     
     socket.on('dashboard.updated', () => {
-      mutate(`http://localhost:3001/dashboard/metrics?propertyId=${propertyId}`);
+      mutate(`${apiBase}/dashboard/metrics?propertyId=${propertyId}`);
       setLiveMetrics(computeLiveOperationalState());
     });
 
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [propertyId, apiBase]);
 
   const displayData = (data && data.hotel) ? data : liveMetrics;
 
