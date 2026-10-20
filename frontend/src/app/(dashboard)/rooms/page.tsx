@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { 
   Sparkles, Plus, Search, Filter, Wrench, 
   CheckCircle2, BedDouble, AlertCircle, RefreshCw, 
-  ExternalLink, UserCheck, ShieldCheck, Trash2, X, AlertTriangle
+  ExternalLink, UserCheck, ShieldCheck, Trash2, X, AlertTriangle, Pencil
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -24,6 +24,7 @@ export default function RoomBoardPage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RoomItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<RoomItem | null>(null);
 
   // Load persisted rooms from localStorage
   const loadRooms = () => {
@@ -60,6 +61,23 @@ export default function RoomBoardPage() {
   const handleConfirmClearAll = () => {
     saveRooms([]);
     setShowClearConfirm(false);
+  };
+
+  const handleSaveEditRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRoom) return;
+    const num = editingRoom.roomNumber.trim();
+    if (!num) return;
+    
+    const updated = rooms.map(r => r.id === editingRoom.id ? {
+      ...editingRoom,
+      roomNumber: num,
+      floor: Number(editingRoom.floor) || 1,
+      pricePerNight: Number(editingRoom.pricePerNight) || 160,
+    } : r);
+    
+    saveRooms(updated);
+    setEditingRoom(null);
   };
 
   const handleAction = (id: string, action: string) => {
@@ -269,6 +287,15 @@ export default function RoomBoardPage() {
                     <StatusBadge status={room.occupancy} size="sm" />
                     <button
                       type="button"
+                      onClick={() => setEditingRoom({ ...room })}
+                      className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                      title={`Edit Room ${room.roomNumber} Details`}
+                      aria-label={`Edit Room ${room.roomNumber}`}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setDeleteTarget(room)}
                       className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
                       title={`Delete Room ${room.roomNumber}`}
@@ -345,22 +372,33 @@ export default function RoomBoardPage() {
                     )}
                   </div>
 
-                  {isMaintenance ? (
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleAction(room.id, 'Clear Maintenance')}
-                      className="px-2 py-1 rounded bg-white border border-slate-200 text-emerald-700 hover:bg-emerald-50 text-[11px] font-semibold transition-colors"
+                      type="button"
+                      onClick={() => setEditingRoom({ ...room })}
+                      className="px-2 py-1 rounded bg-white border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] font-medium transition-colors flex items-center gap-1"
+                      title="Edit Room Details"
                     >
-                      Release OOS
+                      <Pencil className="w-3 h-3 text-slate-400" />
+                      <span>Edit</span>
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => handleAction(room.id, 'Report Maintenance')}
-                      className="px-2 py-1 rounded bg-white border border-slate-200 text-slate-500 hover:text-orange-700 hover:bg-orange-50 text-[11px] font-medium transition-colors"
-                      title="Report maintenance issue"
-                    >
-                      Report Issue
-                    </button>
-                  )}
+                    {isMaintenance ? (
+                      <button
+                        onClick={() => handleAction(room.id, 'Clear Maintenance')}
+                        className="px-2 py-1 rounded bg-white border border-slate-200 text-emerald-700 hover:bg-emerald-50 text-[11px] font-semibold transition-colors"
+                      >
+                        Release OOS
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleAction(room.id, 'Report Maintenance')}
+                        className="px-2 py-1 rounded bg-white border border-slate-200 text-slate-500 hover:text-orange-700 hover:bg-orange-50 text-[11px] font-medium transition-colors"
+                        title="Report maintenance issue"
+                      >
+                        Report Issue
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -454,6 +492,151 @@ export default function RoomBoardPage() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Room Details Modal */}
+      {editingRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-all animate-in fade-in duration-300"
+            onClick={() => setEditingRoom(null)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full p-6 z-10 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Edit Room Details
+                  </h3>
+                  <p className="text-xs text-slate-500">Update attributes for Room {editingRoom.roomNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingRoom(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditRoom} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Room Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingRoom.roomNumber}
+                    onChange={(e) => setEditingRoom({ ...editingRoom, roomNumber: e.target.value })}
+                    className="hotel-input w-full"
+                    placeholder="e.g. 101"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Floor *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    required
+                    value={editingRoom.floor}
+                    onChange={(e) => setEditingRoom({ ...editingRoom, floor: parseInt(e.target.value, 10) || 1 })}
+                    className="hotel-input w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Room Type / Tier *</label>
+                  <select
+                    value={editingRoom.type}
+                    onChange={(e) => setEditingRoom({ ...editingRoom, type: e.target.value })}
+                    className="hotel-input w-full"
+                  >
+                    <option value="Standard Tier">Standard Tier</option>
+                    <option value="Deluxe Tier">Deluxe Tier</option>
+                    <option value="Suite Tier">Suite Tier</option>
+                    <option value="Presidential Tier">Presidential Tier</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Rate / Night (Rs.) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    value={editingRoom.pricePerNight}
+                    onChange={(e) => setEditingRoom({ ...editingRoom, pricePerNight: parseFloat(e.target.value) || 0 })}
+                    className="hotel-input w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Housekeeping Status</label>
+                  <select
+                    value={editingRoom.housekeeping}
+                    onChange={(e) => setEditingRoom({ ...editingRoom, housekeeping: e.target.value as any })}
+                    className="hotel-input w-full"
+                  >
+                    <option value="Clean">Clean</option>
+                    <option value="Cleaning">Cleaning</option>
+                    <option value="Dirty">Dirty</option>
+                    <option value="Inspected">Inspected</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Operational Status</label>
+                  <select
+                    value={editingRoom.operational}
+                    onChange={(e) => setEditingRoom({ ...editingRoom, operational: e.target.value as any })}
+                    className="hotel-input w-full"
+                  >
+                    <option value="In Service">In Service</option>
+                    <option value="Out of Order">Out of Order (Maintenance)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Occupancy Status</label>
+                <select
+                  value={editingRoom.occupancy}
+                  onChange={(e) => setEditingRoom({ ...editingRoom, occupancy: e.target.value as any })}
+                  className="hotel-input w-full"
+                >
+                  <option value="Vacant">Vacant</option>
+                  <option value="Occupied">Occupied</option>
+                  <option value="Reserved">Reserved</option>
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingRoom(null)}
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors shadow-xs"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
