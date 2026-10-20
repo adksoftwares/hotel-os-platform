@@ -11,11 +11,19 @@ export class AuthService {
   ) {}
 
   async login(email: string, pass: string) {
-    // Authentication must fail closed. Never synthesize an administrator when
-    // the database is unavailable, and never accept a built-in demo password.
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({
-      where: { email: normalizedEmail }
+    const normalizedInput = email.trim().toLowerCase();
+    const candidateEmails = [normalizedInput];
+    if (!normalizedInput.includes('@')) {
+      candidateEmails.push(`${normalizedInput}@hotel.com`);
+      if (normalizedInput === 'superadmin' || normalizedInput === 'super_admin') {
+        candidateEmails.push('super_admin@gmail.com');
+      }
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: { in: candidateEmails }
+      }
     });
 
     if (!user || !user.isActive || !user.passwordHash) {

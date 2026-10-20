@@ -20,14 +20,15 @@ const fetcher = async (url: string) => {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch(url, { headers });
-  if (res.status === 401) {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      return null;
     }
-    throw new Error('Unauthorized');
+    return res.json();
+  } catch (_) {
+    return null;
   }
-  return res.json();
 };
 
 interface LiveOperationalMetrics {
