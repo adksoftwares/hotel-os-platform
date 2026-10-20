@@ -44,6 +44,20 @@ export const INITIAL_STAFF_ACCOUNTS: StaffAccount[] = [
     createdAt: '2026-10-01',
     lastLogin: '2026-10-19 17:00',
   },
+  {
+    id: 'STF-A02',
+    firstName: 'Hotel',
+    lastName: 'Admin 001',
+    phone: '+91 98400 11111',
+    email: 'hotel001@hotel.com',
+    username: 'hotel001',
+    password: 'hotel001',
+    role: 'ADMIN',
+    property: 'Main Hotel Property',
+    isActive: true,
+    createdAt: '2026-10-20',
+    lastLogin: '2026-10-20 18:00',
+  },
 ];
 
 const STORAGE_KEY = 'hotel_staff_accounts';

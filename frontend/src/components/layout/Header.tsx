@@ -82,7 +82,8 @@ export function Header() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
     router.push('/login');
   };
 

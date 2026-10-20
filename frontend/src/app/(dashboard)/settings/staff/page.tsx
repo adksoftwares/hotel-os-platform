@@ -61,8 +61,41 @@ export default function StaffManagementPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassText, setShowPassText] = useState(false);
 
-  const refreshData = () => {
-    setStaffList(loadStaffAccounts());
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+  const refreshData = async () => {
+    // 1. Instant local render
+    const local = loadStaffAccounts();
+    setStaffList(local);
+
+    // 2. Sync with backend database
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      const res = await fetch(`${apiBase}/auth/staff`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const remoteUsers: StaffAccount[] = await res.json();
+        if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+          const merged = [...remoteUsers];
+          for (const loc of local) {
+            const foundIdx = merged.findIndex(
+              (r) => r.id === loc.id || r.username.toLowerCase() === loc.username.toLowerCase()
+            );
+            if (foundIdx >= 0) {
+              if (loc.password) {
+                merged[foundIdx].password = loc.password;
+              }
+            } else {
+              merged.push(loc);
+            }
+          }
+          saveStaffAccounts(merged);
+          setStaffList(merged);
+        }
+      }
+    } catch (_) {}
   };
 
   useEffect(() => {
@@ -164,6 +197,30 @@ export default function StaffManagementPage() {
       property: formData.property.trim() || 'Grand ADK Hotel',
     });
 
+    // Also persist to backend database
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        await fetch(`${apiBase}/auth/staff`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+            phone: formData.phone.trim(),
+            email: formData.email.trim().toLowerCase(),
+            username: usernameClean,
+            password: formData.password,
+            role: formData.role,
+            property: formData.property.trim() || 'Grand ADK Hotel'
+          })
+        });
+      } catch (_) {}
+    })();
+
     const roleLabel = 
       created.role === 'ADMIN' 
         ? 'Hotel Administrator' 
@@ -222,6 +279,28 @@ export default function StaffManagementPage() {
       isActive: editFormData.isActive,
     });
 
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        await fetch(`${apiBase}/auth/staff/${selectedStaff.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            firstName: editFormData.firstName.trim(),
+            lastName: editFormData.lastName.trim(),
+            phone: editFormData.phone.trim(),
+            email: editFormData.email.trim().toLowerCase(),
+            username: usernameClean,
+            role: editFormData.role,
+            isActive: editFormData.isActive,
+          })
+        });
+      } catch (_) {}
+    })();
+
     toast(`Account for ${editFormData.firstName} ${editFormData.lastName} updated!`, 'success');
     setShowEditModal(false);
     setSelectedStaff(null);
@@ -256,6 +335,21 @@ export default function StaffManagementPage() {
     }
 
     resetStaffPassword(selectedStaff.id, newPassword);
+
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        await fetch(`${apiBase}/auth/staff/${selectedStaff.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ password: newPassword.trim() })
+        });
+      } catch (_) {}
+    })();
+
     toast(`Password for ${selectedStaff.firstName} (@${selectedStaff.username}) has been reset successfully!`, 'success');
     setShowResetModal(false);
     setSelectedStaff(null);
@@ -277,6 +371,21 @@ export default function StaffManagementPage() {
   const handleToggleActive = (staff: StaffAccount) => {
     const updatedStatus = !staff.isActive;
     updateStaffAccount(staff.id, { isActive: updatedStatus });
+
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        await fetch(`${apiBase}/auth/staff/${staff.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ isActive: updatedStatus })
+        });
+      } catch (_) {}
+    })();
+
     toast(`Account for ${staff.firstName} is now ${updatedStatus ? 'Active' : 'Suspended'}.`, updatedStatus ? 'success' : 'info');
     refreshData();
   };
@@ -290,6 +399,19 @@ export default function StaffManagementPage() {
       return;
     }
     deleteStaffAccount(selectedStaff.id);
+
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        await fetch(`${apiBase}/auth/staff/${selectedStaff.id}`, {
+          method: 'DELETE',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+      } catch (_) {}
+    })();
+
     toast(`Account "${selectedStaff.firstName} ${selectedStaff.lastName}" deleted.`, 'info');
     setShowDeleteModal(false);
     setSelectedStaff(null);
