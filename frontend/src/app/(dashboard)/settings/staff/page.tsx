@@ -433,14 +433,14 @@ export default function StaffManagementPage() {
             </Link>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-purple-50 text-purple-700 shadow-xs border border-purple-100">
+            <div className="p-2.5 rounded-2xl bg-slate-100 text-slate-800 shadow-xs border border-slate-200">
               <Users className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Staff & Hotel Admin Hub</h1>
                 {currentUserRole === 'SUPER_ADMIN' && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1">
                     <Crown className="w-3 h-3 text-amber-500" /> Super Admin Mode
                   </span>
                 )}
@@ -456,8 +456,8 @@ export default function StaffManagementPage() {
           onClick={handleOpenCreate}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-bold text-xs transition-colors shadow-sm ${
             activeTab === 'ADMIN'
-              ? 'bg-purple-700 hover:bg-purple-800'
-              : 'bg-blue-600 hover:bg-blue-700'
+              ? 'bg-slate-900 hover:bg-slate-800'
+              : 'bg-emerald-600 hover:bg-emerald-500'
           }`}
         >
           <UserPlus className="w-4 h-4" />
@@ -476,14 +476,14 @@ export default function StaffManagementPage() {
               onClick={() => setActiveTab('ADMIN')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 ${
                 activeTab === 'ADMIN'
-                  ? 'bg-purple-950 text-white shadow-xs ring-2 ring-purple-600/30'
+                  ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
               }`}
             >
-              <Crown className="w-4 h-4 text-amber-300" />
+              <Crown className="w-4 h-4 text-amber-400" />
               <span>Hotel Admins (Property Admins)</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                activeTab === 'ADMIN' ? 'bg-purple-800 text-purple-100' : 'bg-purple-50 text-purple-700'
+                activeTab === 'ADMIN' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'
               }`}>
                 {adminCount}
               </span>
@@ -535,16 +535,16 @@ export default function StaffManagementPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={`Search ${activeTab === 'ADMIN' ? 'hotel admins' : activeTab === 'WAITER' ? 'waiters' : 'maids'} by name, property...`}
-            className="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
+            className="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 font-medium"
           />
         </div>
       </div>
 
       {/* Super Admin Control Banner (Displayed when on Hotel Admins Tab) */}
       {activeTab === 'ADMIN' && (
-        <div className="mb-4 p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm border border-purple-900">
+        <div className="mb-4 p-4 rounded-2xl bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm border border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-900/80 text-amber-300 flex items-center justify-center shrink-0 border border-purple-700/60 shadow-inner">
+            <div className="w-10 h-10 rounded-xl bg-slate-800 text-amber-400 flex items-center justify-center shrink-0 border border-slate-700 shadow-inner">
               <Crown className="w-5 h-5" />
             </div>
             <div>
@@ -554,14 +554,14 @@ export default function StaffManagementPage() {
                   Full Property Control
                 </span>
               </div>
-              <p className="text-xs text-purple-200/90 mt-0.5">
+              <p className="text-xs text-slate-300 mt-0.5">
                 Super Admins can create and authorize Hotel Administrators. Each Hotel Admin governs front office folios, restaurant KOTs, room readiness, and can provision local Waiters and Maids for their assigned property.
               </p>
             </div>
           </div>
           <button
             onClick={handleOpenCreate}
-            className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-purple-950 font-bold text-xs transition-colors shadow-sm"
+            className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-sm"
           >
             <UserPlus className="w-4 h-4" />
             <span>+ Add Hotel Admin</span>
@@ -600,13 +600,13 @@ export default function StaffManagementPage() {
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs ${
                         staff.role === 'ADMIN'
-                          ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                          ? 'bg-slate-100 text-slate-800 border border-slate-200'
                           : staff.role === 'WAITER'
                           ? 'bg-amber-100 text-amber-800 border border-amber-200'
                           : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       }`}>
                         {staff.role === 'ADMIN' ? (
-                          <ShieldCheck className="w-4 h-4 text-purple-700" />
+                          <ShieldCheck className="w-4 h-4 text-slate-700" />
                         ) : (
                           `${staff.firstName[0]}${staff.lastName[0]}`
                         )}
@@ -617,7 +617,7 @@ export default function StaffManagementPage() {
                             {staff.firstName} {staff.lastName}
                           </span>
                           {staff.role === 'ADMIN' && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                               Admin
                             </span>
                           )}
@@ -655,14 +655,14 @@ export default function StaffManagementPage() {
                   <td className="p-4">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                       staff.role === 'ADMIN'
-                        ? 'bg-purple-50 text-purple-800 border-purple-200'
+                        ? 'bg-slate-100 text-slate-800 border-slate-200'
                         : staff.role === 'WAITER'
                         ? 'bg-amber-50 text-amber-800 border-amber-200'
                         : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}>
                       {staff.role === 'ADMIN' ? (
                         <>
-                          <Crown className="w-3 h-3 text-purple-600" /> Hotel Admin (Full OS)
+                          <Crown className="w-3 h-3 text-amber-500" /> Hotel Admin (Full OS)
                         </>
                       ) : staff.role === 'WAITER' ? (
                         <>
@@ -749,7 +749,7 @@ export default function StaffManagementPage() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className={`p-2 rounded-xl ${
-                  formData.role === 'ADMIN' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+                  formData.role === 'ADMIN' ? 'bg-slate-100 text-slate-800' : 'bg-blue-50 text-blue-700'
                 }`}>
                   <UserPlus className="w-5 h-5" />
                 </div>
@@ -779,11 +779,11 @@ export default function StaffManagementPage() {
                     onClick={() => setFormData({ ...formData, role: 'ADMIN' })}
                     className={`py-2 px-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all ${
                       formData.role === 'ADMIN'
-                        ? 'bg-purple-50 border-purple-300 text-purple-900 ring-2 ring-purple-400/30 font-bold'
+                        ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/20 font-bold'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <Crown className="w-4 h-4 text-purple-600" />
+                    <Crown className={`w-4 h-4 ${formData.role === 'ADMIN' ? 'text-amber-400' : 'text-slate-500'}`} />
                     <span>Hotel Admin</span>
                   </button>
 
@@ -838,7 +838,7 @@ export default function StaffManagementPage() {
                       key={prop}
                       type="button"
                       onClick={() => setFormData({ ...formData, property: prop })}
-                      className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-purple-800 transition-colors"
+                      className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {prop}
                     </button>
@@ -924,7 +924,7 @@ export default function StaffManagementPage() {
                         }
                         setFormData({ ...formData, password: rand });
                       }}
-                      className="text-[10px] text-purple-700 hover:underline font-semibold"
+                      className="text-[10px] text-slate-700 hover:text-slate-900 hover:underline font-semibold"
                     >
                       Generate
                     </button>
@@ -960,7 +960,7 @@ export default function StaffManagementPage() {
                 <button
                   type="submit"
                   className={`px-5 py-2 rounded-xl text-white font-bold text-xs transition-colors shadow-sm ${
-                    formData.role === 'ADMIN' ? 'bg-purple-700 hover:bg-purple-800' : 'bg-blue-600 hover:bg-blue-700'
+                    formData.role === 'ADMIN' ? 'bg-slate-900 hover:bg-slate-800' : 'bg-emerald-600 hover:bg-emerald-500'
                   }`}
                 >
                   Save & Activate Account
@@ -1085,7 +1085,7 @@ export default function StaffManagementPage() {
                       name="status"
                       checked={editFormData.isActive}
                       onChange={() => setEditFormData({ ...editFormData, isActive: true })}
-                      className="text-purple-600 focus:ring-purple-500"
+                      className="text-slate-900 focus:ring-slate-900"
                     />
                     <span className="font-semibold text-emerald-700">Active</span>
                   </label>
@@ -1149,7 +1149,7 @@ export default function StaffManagementPage() {
                 <button
                   type="button"
                   onClick={generateRandomPassword}
-                  className="text-xs font-semibold text-purple-700 hover:text-purple-900 hover:underline flex items-center gap-1"
+                  className="text-xs font-semibold text-slate-700 hover:text-slate-900 hover:underline flex items-center gap-1"
                 >
                   <RefreshCw className="w-3 h-3" />
                   <span>Generate Strong Password</span>
